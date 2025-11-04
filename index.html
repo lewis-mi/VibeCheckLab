@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Check Lab</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- Style Guide Variables --- */
+        :root {
+            --background-color: #FFFFFF;
+            --text-color: #000000;
+            --primary-lime: #32CD32;
+            --primary-teal: #129490;
+            --primary-purple: #7A28CB;
+            --border: 1px solid #000;
+            --border-radius: 8px;
+        }
+
+        /* --- General Setup --- */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        
+        #root {
+            height: 100vh;
+        }
+
+        /* --- Global Component Styles --- */
+
+        /* Ghost Button Style */
+        .ghost-button {
+            display: inline-block;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 1em;
+            color: var(--text-color);
+            background-color: transparent;
+            border: var(--border);
+            border-radius: var(--border-radius);
+            padding: 12px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .ghost-button:hover, .ghost-button:focus {
+            background-color: var(--primary-lime);
+            outline: none;
+        }
+        .ghost-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: transparent; /* Ensure disabled state doesn't keep hover color */
+        }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0"
+  }
+}
+</script>
+</head>
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
