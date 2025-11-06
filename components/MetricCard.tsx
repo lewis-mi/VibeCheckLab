@@ -6,7 +6,44 @@ interface MetricCardProps extends DashboardMetric {
   onClick: () => void;
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({ metric, keyFinding, analysis, onClick }) => {
+const FlowBalanceBar: React.FC<{ balancePercent: number }> = ({ balancePercent }) => (
+    <div style={barStyles.container}>
+        <div style={barStyles.labels}>
+            <span>Human</span>
+            <span>AI</span>
+        </div>
+        <div style={barStyles.bar}>
+            <div style={{ ...barStyles.fill, width: `${100 - balancePercent}%`, backgroundColor: 'var(--primary-teal)' }} />
+            <div style={{ ...barStyles.fill, width: `${balancePercent}%`, backgroundColor: 'var(--primary-purple)' }} />
+        </div>
+    </div>
+);
+
+const barStyles: { [key: string]: React.CSSProperties } = {
+    container: { margin: '10px 0' },
+    labels: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: '0.8em',
+        fontWeight: 700,
+        marginBottom: '4px',
+    },
+    bar: {
+        width: '100%',
+        height: '12px',
+        backgroundColor: '#eee',
+        borderRadius: '6px',
+        display: 'flex',
+        overflow: 'hidden',
+    },
+    fill: {
+        height: '100%',
+        transition: 'width 0.5s ease-in-out',
+    }
+}
+
+
+const MetricCard: React.FC<MetricCardProps> = ({ metric, keyFinding, analysis, balancePercent, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const cardStyle: React.CSSProperties = {
@@ -30,7 +67,11 @@ const MetricCard: React.FC<MetricCardProps> = ({ metric, keyFinding, analysis, o
       onKeyPress={(e) => e.key === 'Enter' && onClick()}
     >
       <h3 style={styles.title}>{metric}</h3>
-      <h2 style={styles.keyFinding}>{keyFinding}</h2>
+      {metric === 'Flow' && balancePercent !== undefined ? (
+        <FlowBalanceBar balancePercent={balancePercent} />
+      ) : (
+        <h2 style={styles.keyFinding}>{keyFinding}</h2>
+      )}
       <p style={styles.analysis}>{analysis}</p>
       <div style={footerStyle}>
         <span style={{marginRight: '4px'}}>Deep Dive...</span>

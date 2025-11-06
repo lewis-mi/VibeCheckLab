@@ -57,3 +57,20 @@ export const ArrowDownIcon = () => (
         <polyline points="19 12 12 19 5 12"></polyline>
     </svg>
 );
+
+export const LightbulbIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 18h6" />
+        <path d="M10 22h4" />
+        <path d="M12 14a6 6 0 0 0-3.03 10.97c.02.02.04.04.06.06a2.5 2.5 0 0 1 4.94 0c.02-.02.04-.04.06-.06A6 6 0 0 0 12 14z" />
+        <path d="M12 14V4.5" />
+        <path d="M8.5 5.5 12 2l3.5 3.5" />
+    </svg>
+);
+
+export const BookOpenIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+    </svg>
+);

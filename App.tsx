@@ -103,6 +103,7 @@ const App: React.FC = () => {
             analysis={analysis} 
             onReset={handleReset} 
             transcript={currentTranscript} 
+            isMobile={isMobile}
           />
         );
       case 'input':
@@ -127,6 +128,11 @@ const App: React.FC = () => {
     padding: isMobile ? '40px 24px 20px' : '40px 96px 20px',
   };
 
+  const viewContainerStyle = {
+      ...styles.viewContainer,
+      padding: isMobile ? '24px' : '40px',
+  };
+
   return (
     <div style={styles.appContainer}>
       <header style={headerStyle}>
@@ -136,7 +142,7 @@ const App: React.FC = () => {
           <button className="ghost-button" style={{ border: 'none' }} onClick={() => setIsRecentOpen(true)}>Recent</button>
         </div>
       </header>
-      <main style={styles.viewContainer}>
+      <main style={viewContainerStyle}>
           {renderView()}
       </main>
       <RecentPanel 
@@ -171,10 +177,28 @@ const App: React.FC = () => {
                     <em>Key Source: J. L. Austin (1962). 'How to Do Things with Words.'</em>
                 </div>
             </li>
-            <li>
+            <li style={{ marginBottom: '16px' }}>
                 <strong>Conversation Analysis:</strong> The structure of conversation, like turn-taking and flow.
                 <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
                     <em>Key Source: Sacks, Schegloff, & Jefferson (1974). 'A simplest systematics for the organization of turn-taking for conversation.'</em>
+                </div>
+            </li>
+             <li style={{ marginBottom: '16px' }}>
+                <strong>Conversational Implicature:</strong> How meaning is conveyed beyond literal words through shared context.
+                <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
+                    <em>Key Source: Paul Grice (1975). 'Logic and Conversation.'</em>
+                </div>
+            </li>
+            <li style={{ marginBottom: '16px' }}>
+                <strong>Discourse Analysis:</strong> How sentences are woven together to create a cohesive and coherent conversation.
+                <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
+                    <em>Key Source: Halliday & Hasan (1976). 'Cohesion in English.'</em>
+                </div>
+            </li>
+            <li>
+                <strong>Accommodation Theory:</strong> How we adjust our communication style to signal social closeness or distance.
+                <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
+                    <em>Key Source: Giles, H. (1973). 'Accent mobility: a model and some data.'</em>
                 </div>
             </li>
           </ul>
@@ -205,7 +229,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   viewContainer: {
     flex: '1 1 auto',
-    padding: '40px',
     overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
