@@ -28,7 +28,22 @@ Once your local repository is sanitized, replace the hosted history so the leake
    ```
    git push origin main --force
    ```
-3. Ask collaborators to run `git fetch --all --prune` followed by `git reset --hard origin/main` (or their branch) so
-   no one reintroduces the sensitive commits.
+3. Ask collaborators to update their local repositories so the rewritten history stays in sync:
+
+   * **For the `main` branch:**
+
+     ```bash
+     git switch main
+     git fetch origin
+     git reset --hard origin/main
+     ```
+
+   * **For feature branches:** After updating `main`, rebase any in-progress work onto the sanitized history so old
+     commits do not leak back in.
+
+     ```bash
+     git switch my-feature-branch
+     git rebase main
+     ```
 
 Finally, rotate the compromised Gemini API key in Google AI Studio and update any dependent services with the new secret.
