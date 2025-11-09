@@ -140,19 +140,14 @@ export const analyzeTranscript = async (transcript: string): Promise<AnalysisRes
     console.error('Error analyzing transcript with backend service:', error);
 
     if (error instanceof Error) {
-      if (error.message.includes('analysis endpoint is not configured')) {
-        throw error;
-      }
+      const knownErrorMessages = [
+        'analysis endpoint is not configured',
+        'Received incomplete analysis',
+        'The analysis service returned an unexpected response format',
+        'analysis service',
+      ];
 
-      if (error.message.includes('Received incomplete analysis')) {
-        throw error;
-      }
-
-      if (error.message.includes('The analysis service returned an unexpected response format')) {
-        throw error;
-      }
-
-      if (error.message.includes('analysis service')) {
+      if (knownErrorMessages.some((msg) => error.message.includes(msg))) {
         throw error;
       }
     }
