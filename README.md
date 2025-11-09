@@ -15,7 +15,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/1ppe4ommybfdnoH9G511Emx
 
 1. Install dependencies:
    `npm install`
-2. Copy `.env.example` to `.env.local` and set the `GEMINI_API_KEY` value to a valid Gemini API key you generated in AI Studio.
-   *Never commit your populated `.env.local` file to source control.*
+2. Copy `.env.example` to `.env.local` and set `VITE_ANALYSIS_ENDPOINT` to the URL of your secured backend endpoint (for example, your Cloud Run `/analyze` route) that proxies Gemini requests.
+   *The frontend no longer uses a Gemini API key directly—keep the key on the server backing this endpoint.*
 3. Run the app:
    `npm run dev`
