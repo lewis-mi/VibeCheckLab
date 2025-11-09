@@ -104,13 +104,11 @@ const handleErrorResponse = async (response: Response): Promise<never> => {
 
   try {
     const data = await response.clone().json();
-    if (data && typeof data.message === 'string' && data.message.trim().length > 0) {
+    if (data?.message && typeof data.message === 'string' && data.message.trim()) {
       throw new Error(data.message);
     }
-  } catch (parseError) {
-    if (parseError instanceof Error && parseError.name !== 'SyntaxError') {
-      throw parseError;
-    }
+  } catch {
+    // Ignore parsing failures and fall back to the default message.
   }
 
   throw new Error(fallbackMessage);
