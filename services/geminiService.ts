@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { AnalysisResult, AnnotatedTurn, DashboardMetric, DeepDiveConcept, KeyFormulation, KeyMoment, HighlightAnalysis } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
 
 // --- NEW, MORE ROBUST SCHEMA ---
 
