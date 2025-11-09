@@ -27,9 +27,9 @@ const styles: { [key: string]: React.CSSProperties } = {
   container: {
     width: '100%',
     maxWidth: '600px',
-    backgroundColor: '#FFFBEB',
-    color: '#92400E',
-    border: '1px solid #FBBF24',
+    backgroundColor: 'var(--error-background)',
+    color: 'var(--error-text-color)',
+    border: '1px solid var(--error-border-color)',
     borderRadius: 'var(--border-radius)',
     padding: '16px',
     marginBottom: '20px',
@@ -39,7 +39,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   iconContainer: {
     flexShrink: 0,
     marginRight: '12px',
-    color: '#D97706',
+    color: 'var(--error-icon-color)',
   },
   textContainer: {
     flex: '1 1 auto',
@@ -47,7 +47,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   title: {
     margin: '0 0 4px 0',
     fontWeight: 700,
-    color: '#92400E',
+    color: 'var(--error-text-color)',
   },
   message: {
     margin: 0,
@@ -59,7 +59,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
     padding: 0,
     marginLeft: '16px',
-    color: '#92400E',
+    color: 'var(--error-text-color)',
   },
 };
 

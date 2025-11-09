@@ -4,19 +4,23 @@ import type { AnalysisResult } from './types';
 import TranscriptInput from './components/TranscriptInput';
 import AnalysisDisplay from './components/AnalysisDisplay';
 import LoadingSpinner from './components/LoadingSpinner';
-import RecentPanel from './components/HistoryPanel';
+import HistoryPanel from './components/HistoryPanel';
 import { useLocalStorage } from './hooks';
 import HeaderLogo from './components/HeaderLogo';
 import Modal from './components/Modal';
 import ErrorDisplay from './components/ErrorDisplay';
+import ThemeToggle from './components/ThemeToggle';
+import AcademicSources from './components/AcademicSources';
+import Welcome from './components/Welcome';
 
-type View = 'input' | 'loading' | 'report';
+export type View = 'input' | 'loading' | 'report' | 'sources';
 export type RecentItem = {
   id: string;
   transcript: string;
   analysis: AnalysisResult;
   timestamp: string;
 };
+export type Theme = 'light' | 'dark';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('input');
@@ -24,8 +28,12 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [recentItems, setRecentItems] = useLocalStorage<RecentItem[]>('vibe-check-history', []);
   const [currentTranscript, setCurrentTranscript] = useState('');
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const [isRecentOpen, setIsRecentOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [theme, setTheme] = useLocalStorage<Theme>('vibe-check-theme', 'dark');
+
+  const [hasSeenWelcome, setHasSeenWelcome] = useLocalStorage('vibe-check-welcome-seen', false);
 
   // State to track screen size for responsive design
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -40,10 +48,34 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Effect to apply the current theme to the document
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+
   const handleAnalyze = async (transcript: string) => {
     setView('loading');
     setError(null);
     setCurrentTranscript(transcript);
+
+    // Client-side rate limiting
+    const requestTimestamps = JSON.parse(localStorage.getItem('vibe-check-requests') || '[]');
+    const now = Date.now();
+    const oneMinuteAgo = now - 60000;
+    const recentRequests = requestTimestamps.filter((ts: number) => ts > oneMinuteAgo);
+
+    if (recentRequests.length >= 5) {
+      setError("You've made too many requests. Please wait a moment before trying again.");
+      setView('input');
+      return;
+    }
+    
+    localStorage.setItem('vibe-check-requests', JSON.stringify([...recentRequests, now]));
+
 
     try {
       const result = await analyzeTranscript(transcript);
@@ -56,6 +88,7 @@ const App: React.FC = () => {
         timestamp: new Date().toLocaleString(),
       };
       setRecentItems([newRecentItem, ...recentItems]);
+      setCurrentAnalysisId(newRecentItem.id);
 
       setView('report');
     } catch (err) {
@@ -74,6 +107,7 @@ const App: React.FC = () => {
     setAnalysis(null);
     setError(null);
     setCurrentTranscript('');
+    setCurrentAnalysisId(null);
   };
 
   const handleDismissError = () => {
@@ -83,6 +117,7 @@ const App: React.FC = () => {
   const handleSelectRecent = useCallback((item: RecentItem) => {
     setAnalysis(item.analysis);
     setCurrentTranscript(item.transcript);
+    setCurrentAnalysisId(item.id);
     setView('report');
     setIsRecentOpen(false);
   }, []);
@@ -91,6 +126,11 @@ const App: React.FC = () => {
     setRecentItems([]);
     handleReset();
     setIsRecentOpen(false);
+  };
+
+  const handleShowSources = () => {
+    setIsAboutOpen(false);
+    setView('sources');
   };
 
   const renderView = () => {
@@ -104,8 +144,11 @@ const App: React.FC = () => {
             onReset={handleReset} 
             transcript={currentTranscript} 
             isMobile={isMobile}
+            analysisId={currentAnalysisId}
           />
         );
+      case 'sources':
+        return <AcademicSources onBack={handleReset} />;
       case 'input':
       default:
         return (
@@ -113,10 +156,8 @@ const App: React.FC = () => {
             {error && <ErrorDisplay message={error} onDismiss={handleDismissError} />}
             <TranscriptInput 
               onSubmit={handleAnalyze} 
-              // FIX: The `isLoading` prop is set to false because this component only renders
-              // when `view` is 'input'. The comparison `view === 'loading'` would always be false
-              // in this context, causing a TypeScript error.
               isLoading={false} 
+              isMobile={isMobile}
             />
           </>
         );
@@ -132,81 +173,58 @@ const App: React.FC = () => {
       ...styles.viewContainer,
       padding: isMobile ? '24px' : '40px',
   };
+  
+  const mainContent = (
+      <>
+        <header style={headerStyle}>
+            <HeaderLogo isClickable={view !== 'input'} onClick={handleReset} isMobile={isMobile} />
+            <div style={styles.headerActions}>
+            <button className="text-button" onClick={() => setIsAboutOpen(true)}>about</button>
+            <button id="recent-button" className="text-button" onClick={() => setIsRecentOpen(true)}>history</button>
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            </div>
+        </header>
+        <main style={viewContainerStyle}>
+            {renderView()}
+        </main>
+        <HistoryPanel 
+            recentItems={recentItems} 
+            onSelect={handleSelectRecent} 
+            onClear={handleClearRecent}
+            isOpen={isRecentOpen}
+            onClose={() => setIsRecentOpen(false)}
+        />
+        <Modal
+            isOpen={isAboutOpen}
+            onClose={() => setIsAboutOpen(false)}
+            title="about the vibe check lab"
+        >
+            <div style={styles.aboutModalContainer}>
+                <p style={styles.aboutModalParagraph}>
+                    This tool is an exploratory tool designed specifically for analyzing conversations with chatbots and other conversational interfaces.
+                </p>
+                <p style={styles.aboutModalParagraph}>
+                    Start by selecting one of our example transcripts, or paste a transcript from a customer service chat, and our lab assistant will provide an in-depth report on its dynamics.
+                </p>
+                <p style={styles.aboutModalParagraph}>
+                    Each analysis is grounded in established academic frameworks and analyzed by Gemini. Want to learn more? Use the button below.
+                </p>
+                <div style={styles.aboutModalButtonContainer}>
+                    <button className="secondary-button" onClick={handleShowSources}>
+                        Consult The Lab Library
+                    </button>
+                </div>
+            </div>
+        </Modal>
+      </>
+  );
 
   return (
     <div style={styles.appContainer}>
-      <header style={headerStyle}>
-        <HeaderLogo isClickable={view !== 'input'} onClick={handleReset} />
-        <div>
-          <button className="ghost-button" style={{ border: 'none', marginRight: '16px' }} onClick={() => setIsAboutOpen(true)}>About</button>
-          <button className="ghost-button" style={{ border: 'none' }} onClick={() => setIsRecentOpen(true)}>Recent</button>
-        </div>
-      </header>
-      <main style={viewContainerStyle}>
-          {renderView()}
-      </main>
-      <RecentPanel 
-        recentItems={recentItems} 
-        onSelect={handleSelectRecent} 
-        onClear={handleClearRecent}
-        isOpen={isRecentOpen}
-        onClose={() => setIsRecentOpen(false)}
-      />
-      <Modal
-        isOpen={isAboutOpen}
-        onClose={() => setIsAboutOpen(false)}
-        title="About Vibe Check Lab"
-      >
-        <div>
-          <p>
-            The Vibe Check Lab is an AI-powered conversation analysis tool designed for students, researchers, and anyone curious about the mechanics of human-computer interaction.
-          </p>
-          <p>
-            Simply paste in a transcript, and the lab will provide an in-depth analysis grounded in established linguistic theories, including:
-          </p>
-          <ul style={{ paddingLeft: '20px', listStyle: 'none' }}>
-            <li style={{ marginBottom: '16px' }}>
-                <strong>Politeness Theory:</strong> How we manage social-face and rapport.
-                <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
-                    <em>Key Source: Brown & Levinson (1987). 'Politeness: Some Universals in Language Usage.'</em>
-                </div>
-            </li>
-            <li style={{ marginBottom: '16px' }}>
-                <strong>Speech Act Theory:</strong> The actions we perform with words (e.g., promising, warning, apologizing).
-                <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
-                    <em>Key Source: J. L. Austin (1962). 'How to Do Things with Words.'</em>
-                </div>
-            </li>
-            <li style={{ marginBottom: '16px' }}>
-                <strong>Conversation Analysis:</strong> The structure of conversation, like turn-taking and flow.
-                <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
-                    <em>Key Source: Sacks, Schegloff, & Jefferson (1974). 'A simplest systematics for the organization of turn-taking for conversation.'</em>
-                </div>
-            </li>
-             <li style={{ marginBottom: '16px' }}>
-                <strong>Conversational Implicature:</strong> How meaning is conveyed beyond literal words through shared context.
-                <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
-                    <em>Key Source: Paul Grice (1975). 'Logic and Conversation.'</em>
-                </div>
-            </li>
-            <li style={{ marginBottom: '16px' }}>
-                <strong>Discourse Analysis:</strong> How sentences are woven together to create a cohesive and coherent conversation.
-                <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
-                    <em>Key Source: Halliday & Hasan (1976). 'Cohesion in English.'</em>
-                </div>
-            </li>
-            <li>
-                <strong>Accommodation Theory:</strong> How we adjust our communication style to signal social closeness or distance.
-                <div style={{ fontSize: '0.9em', color: '#666', marginTop: '4px' }}>
-                    <em>Key Source: Giles, H. (1973). 'Accent mobility: a model and some data.'</em>
-                </div>
-            </li>
-          </ul>
-          <p>
-            This tool is for educational and exploratory purposes to help make complex academic concepts more accessible and applicable to real-world conversations.
-          </p>
-        </div>
-      </Modal>
+        {!hasSeenWelcome 
+            ? <Welcome onStart={() => setHasSeenWelcome(true)} isMobile={isMobile} />
+            : mainContent
+        }
     </div>
   );
 };
@@ -216,16 +234,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     flexDirection: 'column',
     height: '100vh',
-    backgroundColor: '#FFFFFF',
+    background: 'var(--background)',
+    color: 'var(--text-color)',
     position: 'relative',
     overflow: 'hidden'
   },
   header: {
-    borderBottom: '1px solid #000',
+    borderBottom: '1px solid var(--border-color)',
     flexShrink: 0,
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
+  },
+  headerActions: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
   },
   viewContainer: {
     flex: '1 1 auto',
@@ -233,6 +257,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+  },
+  aboutModalContainer: {
+    textAlign: 'center',
+    lineHeight: 1.6,
+  },
+  aboutModalParagraph: {
+    margin: '0 0 16px 0',
+    color: 'var(--text-color-secondary)',
+  },
+  aboutModalButtonContainer: {
+      marginTop: '24px',
   },
 };
 

@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { RecentItem } from '../App';
 import { TrashIcon, XIcon } from './icons';
 
-interface RecentPanelProps {
+interface HistoryPanelProps {
   recentItems: RecentItem[];
   isOpen: boolean;
   onSelect: (item: RecentItem) => void;
@@ -10,7 +10,34 @@ interface RecentPanelProps {
   onClose: () => void;
 }
 
-const RecentPanel: React.FC<RecentPanelProps> = ({ recentItems, isOpen, onSelect, onClear, onClose }) => {
+const RecentItemView: React.FC<{item: RecentItem, onSelect: () => void}> = ({ item, onSelect }) => {
+    const [isHovered, setIsHovered] = useState(false);
+
+    const itemStyle = {
+        ...styles.recentItem,
+        transform: isHovered ? 'translateX(-4px)' : 'none',
+        borderLeft: isHovered ? `3px solid var(--secondary-accent)` : '3px solid transparent',
+    };
+
+    return (
+        <div
+            onClick={onSelect}
+            style={itemStyle}
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && onSelect()}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <p style={styles.itemText}>
+              "{item.transcript.substring(0, 40)}{item.transcript.length > 40 ? '...' : ''}"
+            </p>
+            <span style={styles.itemTimestamp}>{item.timestamp}</span>
+        </div>
+    );
+};
+
+
+const HistoryPanel: React.FC<HistoryPanelProps> = ({ recentItems, isOpen, onSelect, onClear, onClose }) => {
   const handleSelect = (item: RecentItem) => {
     onSelect(item);
     onClose();
@@ -21,35 +48,28 @@ const RecentPanel: React.FC<RecentPanelProps> = ({ recentItems, isOpen, onSelect
       {isOpen && <div style={styles.backdrop} onClick={onClose} />}
       <aside style={{ ...styles.panel, transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}>
         <div style={styles.header}>
-          <h3>Recent</h3>
+          <h3>history</h3>
           <div style={{display: 'flex', alignItems: 'center'}}>
             {recentItems.length > 0 && (
-                <button onClick={onClear} style={styles.iconButton} aria-label="Clear recent">
+                <button onClick={onClear} style={styles.iconButton} aria-label="Clear history">
                     <TrashIcon />
                 </button>
             )}
-             <button onClick={onClose} style={styles.iconButton} aria-label="Close recent">
+             <button onClick={onClose} style={styles.iconButton} aria-label="Close history">
                 <XIcon />
             </button>
           </div>
         </div>
         <div style={styles.list}>
           {recentItems.length === 0 ? (
-            <p style={styles.emptyText}>Your recent analyses will appear here.</p>
+            <p style={styles.emptyText}>Your previous experiments will be stored here.</p>
           ) : (
             recentItems.map((item) => (
-              <div
+              <RecentItemView 
                 key={item.id}
-                onClick={() => handleSelect(item)}
-                style={styles.recentItem}
-                tabIndex={0}
-                onKeyPress={(e) => e.key === 'Enter' && handleSelect(item)}
-              >
-                <p style={styles.itemText}>
-                  "{item.transcript.substring(0, 40)}{item.transcript.length > 40 ? '...' : ''}"
-                </p>
-                <span style={styles.itemTimestamp}>{item.timestamp}</span>
-              </div>
+                item={item} 
+                onSelect={() => handleSelect(item)} 
+              />
             ))
           )}
         </div>
@@ -74,17 +94,18 @@ const styles: { [key: string]: React.CSSProperties } = {
     top: 0,
     right: 0,
     height: '100%',
-    borderLeft: 'var(--border)',
+    borderLeft: '1px solid var(--border-color)',
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--card-background)',
+    color: 'var(--text-color)',
     zIndex: 1000,
     transition: 'transform 0.3s ease-in-out',
     boxShadow: '-4px 0px 15px rgba(0, 0, 0, 0.1)',
   },
   header: {
     padding: '20px',
-    borderBottom: 'var(--border)',
+    borderBottom: '1px solid var(--border-color)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -96,18 +117,17 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   emptyText: {
     padding: '10px',
-    color: '#666',
+    color: 'var(--text-color-secondary)',
     fontSize: '0.9em',
   },
   recentItem: {
     padding: '15px',
-    border: '1px solid transparent',
     borderRadius: 'var(--border-radius)',
     marginBottom: '10px',
     cursor: 'pointer',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: 'var(--subtle-background)',
     borderLeft: '3px solid transparent',
-    transition: 'background-color 0.2s, border-color 0.2s',
+    transition: 'background-color 0.2s, border-left-color 0.2s, transform 0.2s ease',
   },
   itemText: {
     margin: 0,
@@ -118,7 +138,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   itemTimestamp: {
     fontSize: '0.8em',
-    color: '#666',
+    color: 'var(--text-color-secondary)',
     marginTop: '4px',
     display: 'block'
   },
@@ -130,8 +150,9 @@ const styles: { [key: string]: React.CSSProperties } = {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      marginLeft: '10px'
+      marginLeft: '10px',
+      color: 'inherit'
   }
 };
 
-export default RecentPanel;
+export default HistoryPanel;

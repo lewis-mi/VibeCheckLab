@@ -6,9 +6,17 @@ interface MomentCardProps {
   moment: Moment;
 }
 
+const getConstructColor = (construct: string) => {
+    const lowerConstruct = construct.toLowerCase();
+    if (lowerConstruct.includes('rapport')) return 'var(--rapport-color)';
+    if (lowerConstruct.includes('flow')) return 'var(--flow-color)';
+    if (lowerConstruct.includes('empathy')) return 'var(--empathy-color)';
+    return 'var(--default-construct-color)';
+};
+
 const MomentCard: React.FC<MomentCardProps> = ({ moment }) => {
   const isPositive = moment.impact === 'Positive';
-  const color = isPositive ? 'var(--primary-lime)' : '#F59E0B'; // Using a warm orange for negative impact
+  const color = getConstructColor(moment.construct);
 
   const containerStyle: React.CSSProperties = {
     ...styles.container,
@@ -21,7 +29,7 @@ const MomentCard: React.FC<MomentCardProps> = ({ moment }) => {
   };
 
   return (
-    <div style={containerStyle}>
+    <div style={containerStyle} className="insight-card">
       <div style={styles.header}>
         <h3 style={constructStyle}>
           {moment.construct} {isPositive ? <ArrowUpIcon /> : <ArrowDownIcon />}
@@ -44,9 +52,8 @@ const MomentCard: React.FC<MomentCardProps> = ({ moment }) => {
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 'var(--border-radius)',
     padding: '16px 20px',
+    border: 'none', // Shadow is handled by the insight-card class
   },
   header: {
     display: 'flex',
@@ -65,8 +72,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: '0 0 16px 0',
     padding: '12px',
     fontStyle: 'italic',
-    backgroundColor: '#fff',
-    border: '1px solid #eee',
+    backgroundColor: 'var(--subtle-background)',
+    border: '1px solid var(--border-color-light)',
     borderRadius: '4px',
     whiteSpace: 'pre-line',
   },
@@ -84,7 +91,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: 0,
     fontSize: '0.9em',
     lineHeight: 1.6,
-    color: '#374151',
+    color: 'var(--text-color-secondary)',
   }
 };
 

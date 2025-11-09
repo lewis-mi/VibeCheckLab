@@ -7,25 +7,77 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,700&family=Inter:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
         /* --- Style Guide Variables --- */
         :root {
-            --background-color: #FFFFFF;
-            --text-color: #000000;
-            --primary-lime: #32CD32;
-            --primary-teal: #129490;
-            --primary-purple: #7A28CB;
-            --border: 1px solid #000;
+            --background: #FFFFFF;
+            --text-color: #1A1A1A;
+            --text-color-secondary: #777777;
+            --text-color-body: #444444;
+            --border-color: #E0E0E0;
+            --border-color-light: #EAEAEA;
+            --card-background: #FFFFFF;
+            --subtle-background: #F0F0F0;
+            
+            --primary-accent: #C6F85C; /* New Lime */
+            --secondary-accent: #A5B4FC; /* Soft Blue-Purple */
+
+            /* Mapped to new accents */
+            --human-color: var(--secondary-accent);
+            --ai-color: #A78BFA;
+            --header-logo-color: var(--primary-accent);
+
+            /* Dynamic Highlight Colors */
+            --highlight-color-1: #C6F85C; /* Lime */
+            --highlight-color-2: #A5B4FC; /* Blue-Purple */
+            --highlight-color-3: #FBBF24; /* Amber */
+            --default-construct-color: var(--text-color-secondary);
+
+            /* Error Colors */
+            --error-background: #FFFBEB;
+            --error-text-color: #92400E;
+            --error-border-color: #FBBF24;
+            --error-icon-color: #D97706;
+            
+            --font-display: 'DM Sans', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-accent: 'Space Mono', monospace;
+            
             --border-radius: 8px;
+            --border-radius-lg: 16px;
+            --shadow-subtle: 0 8px 24px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] {
+            --background: #121212;
+            --text-color: #FAFAFA;
+            --text-color-secondary: #A0A0A0;
+            --text-color-body: #CCCCCC;
+            --border-color: #333333;
+            --border-color-light: #444444;
+            --card-background: #1E1E1E;
+            --subtle-background: #161616;
+            
+            /* Dynamic Highlight Colors - Dark Theme */
+            --highlight-color-1: #C6F85C;
+            --highlight-color-2: #A5B4FC;
+            --highlight-color-3: #FBBF24;
+
+            /* Error Colors - Dark Theme */
+            --error-background: #2E1902;
+            --error-text-color: #FCD34D;
+            --error-border-color: #B45309;
+            --error-icon-color: #FCD34D;
         }
 
         /* --- General Setup --- */
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
+            font-family: var(--font-body);
+            background: var(--background);
+            color: var(--text-color-body);
             margin: 0;
             padding: 0;
             -webkit-font-smoothing: antialiased;
@@ -40,9 +92,121 @@
             height: 100vh;
         }
 
-        /* --- Global Component Styles --- */
+        h1, h2, h3 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: var(--text-color);
+        }
 
-        /* Ghost Button Style */
+        h1, h2 {
+            text-transform: lowercase;
+            letter-spacing: -0.01em;
+        }
+
+        /* --- Animation Keyframes --- */
+        @keyframes slide-up-fade {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes pop-in {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        @keyframes fade-in-out {
+            0% { opacity: 0; transform: translateY(10px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes glow {
+            0% { box-shadow: 0 0 4px rgba(198,248,92,0.4); }
+            50% { box-shadow: 0 0 16px rgba(198,248,92,0.8); }
+            100% { box-shadow: 0 0 4px rgba(198,248,92,0.4); }
+        }
+        
+        /* --- Animation Utility Classes --- */
+        .anim-slide-up-fade, .anim-pop-in {
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+        .anim-slide-up-fade {
+            animation-name: slide-up-fade;
+            animation-duration: 0.5s;
+            animation-timing-function: ease-out;
+        }
+        .anim-pop-in {
+            animation-name: pop-in;
+            animation-duration: 0.4s;
+            animation-timing-function: ease-out;
+        }
+        .anim-fade-in-out {
+            animation: fade-in-out 1.5s ease-in-out forwards;
+        }
+
+        /* --- Global Component Styles --- */
+        .primary-button {
+            display: inline-block;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 1em;
+            color: #1A1A1A;
+            background: var(--primary-accent);
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 13px 21px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .primary-button:hover:not(:disabled), .primary-button:focus:not(:disabled) {
+            transform: translateY(-2px);
+            animation: glow 1.5s infinite ease-in-out;
+            outline: none;
+        }
+        .primary-button:disabled {
+            background-color: var(--subtle-background);
+            color: var(--text-color-secondary);
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        
+        .secondary-button {
+            display: inline-block;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 1em;
+            color: var(--background);
+            background-color: var(--text-color);
+            border: 1px solid var(--text-color);
+            border-radius: var(--border-radius);
+            padding: 12px 20px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: opacity 0.25s ease;
+        }
+        .secondary-button:hover, .secondary-button:focus {
+            opacity: 0.8;
+            outline: none;
+        }
+
         .ghost-button {
             display: inline-block;
             font-family: 'Inter', sans-serif;
@@ -50,23 +214,114 @@
             font-size: 1em;
             color: var(--text-color);
             background-color: transparent;
-            border: var(--border);
+            border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
             padding: 12px 20px;
             cursor: pointer;
             text-decoration: none;
             text-align: center;
-            transition: background-color 0.2s ease, color 0.2s ease;
+            transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
         }
         .ghost-button:hover, .ghost-button:focus {
-            background-color: var(--primary-lime);
+            background-color: var(--secondary-accent);
+            color: #fff;
+            border-color: var(--secondary-accent);
             outline: none;
         }
         .ghost-button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            background-color: transparent; /* Ensure disabled state doesn't keep hover color */
+            background-color: transparent;
+            color: var(--text-color);
         }
+        
+        .text-button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 1em;
+            font-weight: 700;
+            border-radius: var(--border-radius);
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .text-button:hover, .text-button:focus {
+            background-color: var(--subtle-background);
+            color: var(--secondary-accent);
+            outline: none;
+        }
+
+        .insight-card {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-subtle);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: none;
+        }
+
+        /* --- Custom Select Component --- */
+        .custom-select-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .custom-select-trigger {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color-light);
+            border-radius: var(--border-radius);
+            background-color: var(--card-background);
+            color: var(--text-color);
+            font-size: 1em;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+        }
+
+        .custom-select-chevron {
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .custom-select-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: var(--card-background);
+            border: 1px solid var(--border-color-light);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            margin-top: 4px;
+            padding: 4px;
+            list-style: none;
+            z-index: 100;
+            max-height: 170px;
+            overflow-y: auto;
+        }
+
+        .custom-select-option {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .custom-select-option:hover, .custom-select-option:focus {
+            background-color: var(--primary-accent);
+            color: #1A1A1A;
+            outline: none;
+        }
+
+        .custom-select-option.selected {
+            font-weight: 700;
+            background-color: var(--subtle-background);
+        }
+
     </style>
     <script type="importmap">
 {
@@ -74,9 +329,17 @@
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0"
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "jspdf": "https://aistudiocdn.com/jspdf@^2.5.1"
   }
 }
+</script>
+<script>
+    (function() {
+      // Prevents FOUC (Flash of Unstyled Content) for theme
+      const theme = localStorage.getItem('vibe-check-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
 </script>
 </head>
 <body>

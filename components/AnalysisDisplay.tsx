@@ -1,105 +1,56 @@
 import React, { useState } from 'react';
-import type { AnalysisResult, DeepDive } from '../types';
-import AnalysisCard from './AnalysisCard';
-import Modal from './Modal';
+import type { AnalysisResult, DeepDiveConcept } from '../types';
 import AnnotatedTranscript from './AnnotatedTranscript';
 import KeyRecommendations from './KeyRecommendations';
-import AcademicDeepDive from './AcademicDeepDive';
-import { generateSummaryMarkdown, generateTranscriptMarkdown } from '../services/exportService';
+import { exportReportAsPdf } from '../services/exportService';
+import Feedback from './Feedback';
+import Modal from './Modal';
+import MetricList from './MetricList';
+import CatalystMoment from './CatalystMoment';
+import ConversationFlowViz from './ConversationFlowViz';
 
 interface AnalysisDisplayProps {
   analysis: AnalysisResult;
-  // FIX: Corrected a typo in the function type definition. 'from' should be '=>'.
   onReset: () => void;
   transcript: string;
   isMobile: boolean;
+  analysisId: string | null;
 }
 
-type ActiveView = 'summary' | 'transcript';
+const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysis, onReset, transcript, isMobile, analysisId }) => {
+  const { vibeTitle, deepDive, annotatedTranscript, keyFormulations, dashboardMetrics } = analysis;
+  const [activeDeepDive, setActiveDeepDive] = useState<DeepDiveConcept | null>(null);
 
-const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysis, onReset, transcript, isMobile }) => {
-  const { vibeTitle, dashboardMetrics, keyMoment, deepDive, momentAnalysis, keyRedesignTips } = analysis;
-  const [selectedConceptKey, setSelectedConceptKey] = useState<keyof DeepDive | null>(null);
-  const [modalTitle, setModalTitle] = useState<string>('');
-  const [activeView, setActiveView] = useState<ActiveView>('summary');
-
-  const selectedConcept = selectedConceptKey ? deepDive[selectedConceptKey] : null;
-
-  const handleCardClick = (conceptKey: keyof DeepDive, title: string) => {
-    setSelectedConceptKey(conceptKey);
-    setModalTitle(title);
-  };
-  
-  const handleCloseModal = () => {
-    setSelectedConceptKey(null);
-    setModalTitle('');
+  const handleOpenDeepDive = (metricName: string) => {
+    const concept = deepDive.find(d => d.concept === metricName);
+    if (concept) {
+      setActiveDeepDive(concept);
+    }
   };
 
-  const handleExport = () => {
-    const isSummary = activeView === 'summary';
-    const content = isSummary
-      ? generateSummaryMarkdown(analysis)
-      : generateTranscriptMarkdown(transcript, momentAnalysis);
-    
-    const filename = `vibe-check-${activeView}-${new Date().toISOString().split('T')[0]}.md`;
-
-    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const handleCloseDeepDive = () => {
+    setActiveDeepDive(null);
   };
 
-  // Responsive styles
+  const handleExportReport = () => {
+    exportReportAsPdf(analysis, transcript);
+  };
+
   const mainHeadlineStyle: React.CSSProperties = {
     ...styles.mainHeadline,
     fontSize: isMobile ? '1.8em' : '2.5em',
   };
 
-  const mainGridStyle: React.CSSProperties = {
-    ...styles.mainGrid,
-    gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(350px, 1fr))',
-    gap: isMobile ? '16px' : '20px',
+  const dashboardLayoutStyle: React.CSSProperties = {
+    ...styles.dashboardLayout,
+    flexDirection: isMobile ? 'column' : 'row',
   };
 
-  const activeButtonStyles: React.CSSProperties = {
-      ...styles.activeButton,
-      padding: isMobile ? '10px 16px' : '10px 20px',
+  const rightColumnStyle: React.CSSProperties = {
+      ...styles.rightColumn,
+      position: isMobile ? 'static' : 'sticky',
+      width: isMobile ? '100%' : 'auto',
   };
-  
-  const inactiveButtonStyles: React.CSSProperties = {
-      ...styles.inactiveButton,
-      padding: isMobile ? '10px 16px' : '10px 20px',
-  };
-
-  const renderSummaryView = () => (
-    <>
-      <KeyRecommendations tips={keyRedesignTips} />
-      <div style={mainGridStyle}>
-        <AnalysisCard title="Key Moment" borderColor="var(--primary-lime)">
-          <div style={styles.snippetContainer}>
-              <blockquote style={styles.blockquote}>
-                "{keyMoment.transcriptSnippet}"
-              </blockquote>
-          </div>
-          <p style={{marginTop: '16px'}}>
-              <strong style={styles.catalyst}>The Catalyst:</strong>
-              {keyMoment.analysis}
-          </p>
-        </AnalysisCard>
-        
-        <AcademicDeepDive
-            dashboardMetrics={dashboardMetrics}
-            onCardClick={handleCardClick}
-        />
-      </div>
-    </>
-  );
 
   return (
     <div style={styles.container}>
@@ -107,50 +58,73 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysis, onReset, tr
         <span style={styles.vibeLabel}>The Vibe:</span> {vibeTitle}
       </h1>
       
-      <div style={styles.viewSwitcher}>
-        <button 
-          style={activeView === 'summary' ? activeButtonStyles : inactiveButtonStyles}
-          onClick={() => setActiveView('summary')}
-          aria-pressed={activeView === 'summary'}
-        >
-          Summary
-        </button>
-        <button 
-          style={activeView === 'transcript' ? activeButtonStyles : inactiveButtonStyles}
-          onClick={() => setActiveView('transcript')}
-          aria-pressed={activeView === 'transcript'}
-        >
-          Annotated Transcript
-        </button>
+      <div style={styles.glanceLayout}>
+        <div className="anim-pop-in" style={{ animationDelay: '0.1s' }}>
+          <CatalystMoment moment={analysis.keyMoment} />
+        </div>
+        <div className="anim-pop-in" style={{ animationDelay: '0.2s' }}>
+          <ConversationFlowViz transcript={transcript} />
+        </div>
       </div>
 
-      {activeView === 'summary' ? renderSummaryView() : (
-        <AnnotatedTranscript transcript={transcript} moments={momentAnalysis} />
-      )}
+      <div style={dashboardLayoutStyle}>
+        <div style={styles.leftColumn}>
+          <div className="anim-pop-in" style={{ animationDelay: '0.3s' }}>
+            <AnnotatedTranscript 
+              annotatedTranscript={annotatedTranscript}
+              keyFormulations={keyFormulations}
+            />
+          </div>
+        </div>
+
+        <div style={rightColumnStyle}>
+            <div className="anim-pop-in" style={{ animationDelay: '0.4s' }}>
+                <KeyRecommendations formulations={keyFormulations} />
+            </div>
+            
+            <div className="anim-pop-in" style={{ animationDelay: '0.5s', marginTop: '30px' }}>
+                <div className="insight-card" style={{padding: '20px 24px'}}>
+                    <h2 style={{marginTop: 0, fontSize: '1.25em'}}>Vibe Metrics</h2>
+                    <p style={{marginTop: 0, color: 'var(--text-color-secondary)'}}>
+                        An elemental breakdown of your conversation's core dynamics.
+                    </p>
+                    <MetricList 
+                        dashboardMetrics={dashboardMetrics} 
+                        onLearnMore={handleOpenDeepDive}
+                    />
+                </div>
+            </div>
+        </div>
+      </div>
+
 
       <div style={styles.footer}>
-        <button onClick={onReset} className="ghost-button">
-          Check another vibe.
-        </button>
-        <button onClick={handleExport} className="ghost-button" style={{ marginLeft: '16px' }}>
-          Export {activeView === 'summary' ? 'Summary' : 'Transcript'}
-        </button>
+        <div style={styles.footerActions}>
+            <button onClick={onReset} className="primary-button">
+              Check another vibe.
+            </button>
+            <button onClick={handleExportReport} className="ghost-button">
+                Export as PDF
+            </button>
+        </div>
+        <Feedback analysisId={analysisId} />
       </div>
 
-
-      {selectedConcept && (
-        <Modal 
-          isOpen={!!selectedConceptKey} 
-          onClose={handleCloseModal} 
-          title={modalTitle}
+      {activeDeepDive && (
+        <Modal
+          isOpen={!!activeDeepDive}
+          onClose={handleCloseDeepDive}
+          title={`The Lab Library: ${activeDeepDive.concept}`}
         >
-          <div>
-            <h3 style={modalStyles.sectionTitle}>What it is:</h3>
-            <p>{selectedConcept.explanation}</p>
-            <h3 style={modalStyles.sectionTitle}>In your transcript:</h3>
-            <p>{selectedConcept.analysis}</p>
-            <div style={modalStyles.sourceSection}>
-                {selectedConcept.source}
+          <div style={deepDiveStyles.content}>
+            <h3 style={deepDiveStyles.sectionTitle}>What it is:</h3>
+            <p>{activeDeepDive.explanation}</p>
+            
+            <h3 style={deepDiveStyles.sectionTitle}>In your transcript:</h3>
+            <p>{activeDeepDive.analysis}</p>
+            
+            <div style={deepDiveStyles.sourceSection}>
+                <em>{activeDeepDive.source}</em>
             </div>
           </div>
         </Modal>
@@ -162,83 +136,69 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysis, onReset, tr
 const styles: { [key: string]: React.CSSProperties } = {
     container: {
         width: '100%',
-        maxWidth: '1000px',
+        maxWidth: '1200px',
         display: 'flex',
         flexDirection: 'column',
     },
     mainHeadline: {
         fontSize: '2.5em',
         fontWeight: 700,
-        marginBottom: '20px',
+        marginBottom: '30px',
         textAlign: 'center',
     },
     vibeLabel: {
         display: 'block',
         fontSize: '0.5em',
         fontWeight: 400,
-        color: '#5f6368',
+        color: 'var(--text-color-secondary)',
         marginBottom: '4px',
+        letterSpacing: '0.05em'
     },
-    viewSwitcher: {
-      display: 'flex',
-      justifyContent: 'center',
-      marginBottom: '30px',
-      border: '1px solid #000',
-      borderRadius: '8px',
-      overflow: 'hidden',
-      alignSelf: 'center',
-    },
-    activeButton: {
-      padding: '10px 20px',
-      border: 'none',
-      background: 'var(--primary-lime)',
-      cursor: 'pointer',
-      fontSize: '1em',
-      fontWeight: '700',
-    },
-    inactiveButton: {
-      padding: '10px 20px',
-      border: 'none',
-      background: 'transparent',
-      cursor: 'pointer',
-      fontSize: '1em',
-      fontWeight: '700',
-    },
-    mainGrid: {
+    glanceLayout: {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-        gap: '20px',
+        gap: '30px',
+        marginBottom: '40px',
         width: '100%',
-        alignItems: 'start',
-        marginTop: '30px',
     },
-    snippetContainer: {
-        backgroundColor: '#f8f8f8',
-        borderLeft: '4px solid var(--primary-lime)',
-        padding: '12px 16px',
-        borderRadius: '4px',
+    dashboardLayout: {
+        display: 'flex',
+        flexDirection: 'row',
+        gap: '40px',
+        alignItems: 'flex-start',
     },
-    blockquote: {
-        fontStyle: 'italic',
-        paddingLeft: '0',
-        margin: '0',
-        fontSize: '1.1em',
-        whiteSpace: 'pre-line',
+    leftColumn: {
+        flex: '2.3 1 0%', 
+        minWidth: 0,
     },
-    catalyst: {
-        display: 'block',
-        marginBottom: '4px',
-        fontWeight: 700,
+    rightColumn: {
+        flex: '1 1 0%',
+        position: 'sticky',
+        top: '40px',
     },
     footer: {
-        marginTop: '40px',
+        marginTop: '60px',
+        paddingTop: '30px',
+        borderTop: '1px solid var(--border-color-light)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '24px',
+    },
+    footerActions: {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-    },
+        flexWrap: 'wrap',
+        gap: '16px',
+    }
 };
 
-const modalStyles: { [key: string]: React.CSSProperties } = {
+const deepDiveStyles: { [key: string]: React.CSSProperties } = {
+    content: {
+        lineHeight: 1.6,
+    },
     sectionTitle: {
         marginTop: '20px',
         marginBottom: '8px',
@@ -248,10 +208,10 @@ const modalStyles: { [key: string]: React.CSSProperties } = {
     sourceSection: {
         marginTop: '24px',
         paddingTop: '16px',
-        borderTop: '1px solid #eee',
+        borderTop: '1px solid var(--border-color-light)',
         fontSize: '0.9em',
-        color: '#666',
-        fontStyle: 'italic',
+        color: 'var(--text-color-secondary)',
+        fontFamily: 'var(--font-accent)',
     }
 }
 

@@ -1,153 +1,208 @@
-import React, { useMemo } from 'react';
-import type { Moment } from '../types';
-import MomentCard from './MomentCard';
+import React, { useMemo, ReactNode } from 'react';
+import type { AnnotatedTurn, HighlightAnalysis, KeyFormulation } from '../types';
+import Popover from './Popover';
+import { getFormulationColorByIndex } from '../utils/colorUtils';
 
 interface AnnotatedTranscriptProps {
-  transcript: string;
-  moments: Moment[];
+  annotatedTranscript: AnnotatedTurn[];
+  keyFormulations: KeyFormulation[];
 }
 
-interface Turn {
-  speaker: string;
-  text: string;
-  turnNumber: number;
+const SpeakerLabel: React.FC<{ speaker: string }> = ({ speaker }) => {
+  const isAI = speaker.toLowerCase().trim() === 'ai';
+  const avatarStyle = isAI ? styles.aiAvatar : styles.humanAvatar;
+  const initial = isAI ? 'AI' : 'H';
+
+  return (
+      <div style={styles.speakerContainer}>
+          <div style={avatarStyle}>{initial}</div>
+      </div>
+  );
 }
 
-const AnnotatedTranscript: React.FC<AnnotatedTranscriptProps> = ({ transcript, moments }) => {
-  // Memoize parsing logic to prevent re-calculation on re-renders
-  const turns: Turn[] = useMemo(() => {
-    const lines = transcript.split('\n').filter(line => line.trim() !== '');
-    return lines.map((line, index) => {
-      const [speaker, ...textParts] = line.split(': ');
-      return {
-        speaker: speaker || 'Unknown',
-        text: textParts.join(': '),
-        turnNumber: index + 1,
-      };
-    });
-  }, [transcript]);
-
-  const momentsByTurn = useMemo(() => {
-    const map = new Map<number, Moment>();
-    moments.forEach(moment => {
-      map.set(moment.turn, moment);
+const AnnotatedTranscript: React.FC<AnnotatedTranscriptProps> = ({ annotatedTranscript, keyFormulations }) => {
+  const formulationToIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    keyFormulations.forEach((formulation, index) => {
+      map.set(formulation.title, index);
     });
     return map;
-  }, [moments]);
+  }, [keyFormulations]);
+  
+  const totalMoments = useMemo(() => {
+    return annotatedTranscript.reduce((acc, turn) => acc + (turn.analysis?.length || 0), 0);
+  }, [annotatedTranscript]);
 
-  const renderTurn = (turn: Turn) => {
-    const moment = momentsByTurn.get(turn.turnNumber);
+  const renderTurnTextWithHighlights = (turn: AnnotatedTurn): ReactNode => {
+    if (!turn.analysis || turn.analysis.length === 0) {
+      return turn.text;
+    }
+    
+    // Sort analyses by their appearance in the text to handle multiple highlights correctly
+    const sortedAnalyses = [...turn.analysis].sort((a, b) => 
+        turn.text.indexOf(a.snippetToHighlight) - turn.text.indexOf(b.snippetToHighlight)
+    );
 
-    if (moment) {
-      const isPositive = moment.impact === 'Positive';
-      const color = isPositive ? '#E8F5E9' : '#FEF3C7'; // Use a subtle green for positive, light yellow for negative
+    let lastIndex = 0;
+    const parts: ReactNode[] = [];
+
+    sortedAnalyses.forEach((analysis, index) => {
+      const snippetIndex = turn.text.indexOf(analysis.snippetToHighlight, lastIndex);
+      if (snippetIndex === -1) return;
+
+      // Add the text before the highlight
+      if (snippetIndex > lastIndex) {
+        parts.push(turn.text.substring(lastIndex, snippetIndex));
+      }
+
+      // Find the color for this formulation
+      const formulationIndex = formulationToIndexMap.get(analysis.keyFormulationTitle);
+      const colorVar = typeof formulationIndex === 'number' 
+        ? getFormulationColorByIndex(formulationIndex)
+        : '--default-construct-color';
       
-      return (
-        <details style={styles.details} key={turn.turnNumber}>
-          <summary style={{ ...styles.summary, backgroundColor: color }}>
-            <div style={styles.turnHeader}>
-                <span style={styles.speaker}>{turn.speaker}</span>
-                <span style={styles.turnNumber}>Turn {turn.turnNumber}</span>
+      const formulation = keyFormulations[formulationIndex!];
+
+      const popoverContent = (
+        <div>
+          {formulation && (
+            <div style={{...styles.popoverHeader, borderLeftColor: `var(${colorVar})`}}>
+              <h4 style={{margin: 0, fontSize: '0.9em'}}>{formulation.title}</h4>
             </div>
-            <p style={styles.turnText}>{turn.text}</p>
-            <div style={styles.learnMore}>Click to see analysis...</div>
-          </summary>
-          <div style={styles.momentContent}>
-            <MomentCard moment={moment} />
-          </div>
-        </details>
+          )}
+          <p style={{margin: '8px 0 0', fontSize: '0.9em'}}>{analysis.tooltipText}</p>
+        </div>
       );
+
+      // Add the highlighted part with a Popover
+      parts.push(
+        <Popover key={index} content={popoverContent} highlightColor={`var(${colorVar})`}>
+          <span>{analysis.snippetToHighlight}</span>
+        </Popover>
+      );
+
+      lastIndex = snippetIndex + analysis.snippetToHighlight.length;
+    });
+
+    // Add any remaining text after the last highlight
+    if (lastIndex < turn.text.length) {
+      parts.push(turn.text.substring(lastIndex));
     }
 
-    return (
-      <div style={styles.turnContainer} key={turn.turnNumber}>
-        <div style={styles.turnHeader}>
-            <span style={styles.speaker}>{turn.speaker}</span>
-            <span style={styles.turnNumber}>Turn {turn.turnNumber}</span>
-        </div>
-        <p style={styles.turnText}>{turn.text}</p>
-      </div>
-    );
+    return <>{parts}</>;
   };
   
   return (
-    <div style={styles.container}>
-      <p style={styles.instructions}>This is the full conversation. Key moments are highlighted. Click on one to expand the analysis.</p>
-      <div style={styles.transcriptBox}>
-        {turns.map(renderTurn)}
-      </div>
+    <div style={styles.container} className="insight-card">
+        <div style={styles.header}>
+            <h2 style={styles.title}>Transcript Analysis</h2>
+            <div style={styles.analysisSummary}>
+                {totalMoments} catalysts identified.
+            </div>
+        </div>
+        <p style={styles.instructions}>Hover over a highlight to see the lab's analysis.</p>
+      
+        <div style={styles.transcriptBox}>
+            {annotatedTranscript.map((turn, index) => (
+                <div style={styles.turnContainer} key={index}>
+                    <SpeakerLabel speaker={turn.speaker} />
+                    <p style={styles.turnText}>
+                        {renderTurnTextWithHighlights(turn)}
+                    </p>
+                </div>
+            ))}
+        </div>
     </div>
   );
 };
 
-// Hide default marker for Webkit browsers
-const styleSheet = document.createElement("style");
-styleSheet.innerText = `summary::-webkit-details-marker { display: none; } summary::marker { display: none; }`;
-document.head.appendChild(styleSheet);
-
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
+    padding: '24px',
     width: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
   },
-  instructions: {
-    textAlign: 'center',
-    color: '#5f6368',
-    maxWidth: '500px',
-    marginBottom: '20px',
-  },
-  transcriptBox: {
-    width: '100%',
-    maxWidth: '800px',
-    border: '1px solid #eee',
-    borderRadius: '8px',
-    backgroundColor: '#fff',
-  },
-  turnContainer: {
-    padding: '12px 16px',
-    borderBottom: '1px solid #eee',
-  },
-  turnHeader: {
+  header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '8px',
+    marginBottom: '4px',
   },
-  speaker: {
+  title: {
+    margin: 0,
+    fontSize: '1.25em',
+  },
+  instructions: {
+    color: 'var(--text-color-secondary)',
+    marginTop: 0,
+    marginBottom: '20px',
+  },
+  analysisSummary: {
+    fontFamily: 'var(--font-accent)',
+    fontSize: '0.9em',
+    color: 'var(--text-color-secondary)',
+    padding: '4px 12px',
+    backgroundColor: 'var(--subtle-background)',
+    borderRadius: '6px',
+    border: '1px solid var(--border-color-light)',
+  },
+  transcriptBox: {
+    width: '100%',
+    border: '1px solid var(--border-color-light)',
+    borderRadius: '8px',
+    backgroundColor: 'var(--card-background)',
+  },
+  turnContainer: {
+    padding: '16px 20px',
+    borderBottom: '1px solid var(--border-color-light)',
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'flex-start',
+  },
+  speakerContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '60px',
+    flexShrink: 0,
+    paddingTop: '4px',
+  },
+  humanAvatar: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--human-color)',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     fontWeight: 700,
+    fontSize: '1.2em',
   },
-  turnNumber: {
-    fontSize: '0.8em',
-    color: '#666',
+  aiAvatar: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--ai-color)',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 700,
+    fontSize: '1em',
   },
   turnText: {
     margin: 0,
-    lineHeight: 1.6,
+    paddingTop: '10px',
+    lineHeight: 1.7,
     whiteSpace: 'pre-wrap',
+    color: 'var(--text-color-body)',
   },
-  details: {
-    borderBottom: '1px solid #eee',
-  },
-  summary: {
-    padding: '12px 16px',
-    cursor: 'pointer',
-    listStyle: 'none',
-    transition: 'background-color 0.2s',
-  },
-  learnMore: {
-    marginTop: '8px',
-    fontSize: '0.9em',
-    fontWeight: 700,
-    color: '#333',
-  },
-  momentContent: {
-    padding: '16px',
-    backgroundColor: '#f9fafb',
-    borderTop: '1px solid #eee',
-  },
+  popoverHeader: {
+    paddingLeft: '8px',
+    borderLeft: '3px solid',
+    marginBottom: '8px',
+  }
 };
 
 export default AnnotatedTranscript;

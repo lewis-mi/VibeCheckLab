@@ -1,10 +1,16 @@
-export interface DashboardMetric {
-  metric: string;
-  keyFinding: string;
-  analysis: string;
-  balancePercent?: number;
+export interface KeyFormulation {
+  title: string;
+  description: string;
 }
 
+export interface DashboardMetric {
+  metric: string;
+  score: number;
+  keyFinding: string;
+  analysis: string;
+}
+
+// FIX: Add DashboardMetrics type definition to resolve an import error in the legacy/unused AcademicDeepDive component.
 export interface DashboardMetrics {
   rapport: DashboardMetric;
   purpose: DashboardMetric;
@@ -19,6 +25,15 @@ export interface KeyMoment {
   analysis: string;
 }
 
+// FIX: Add Moment type definition to resolve import errors in the legacy/unused MomentAnalysis and MomentCard components.
+export interface Moment {
+  construct: string;
+  impact: string;
+  transcriptSnippet: string;
+  explanation: string;
+  redesignTip: string;
+}
+
 export interface DeepDiveConcept {
   concept: string;
   explanation: string;
@@ -26,6 +41,7 @@ export interface DeepDiveConcept {
   source: string;
 }
 
+// FIX: Add DeepDive type definition to resolve an import error in the legacy/unused AcademicDeepDive component.
 export interface DeepDive {
   rapport: DeepDiveConcept;
   purpose: DeepDiveConcept;
@@ -35,25 +51,37 @@ export interface DeepDive {
   accommodation: DeepDiveConcept;
 }
 
-export interface Moment {
-  turn: number;
-  transcriptSnippet: string;
-  construct: string;
-  impact: 'Positive' | 'Negative';
-  explanation:string;
-  redesignTip: string;
+export interface HighlightAnalysis {
+  keyFormulationTitle: string;
+  tooltipText: string;
+  snippetToHighlight: string;
 }
 
-export interface RedesignTip {
-  construct: string;
-  tip: string;
+export interface AnnotatedTurn {
+  speaker: string;
+  text: string;
+  turnNumber: number;
+  analysis?: HighlightAnalysis[];
 }
 
 export interface AnalysisResult {
   vibeTitle: string;
-  dashboardMetrics: DashboardMetrics;
+  keyFormulations: KeyFormulation[];
+  dashboardMetrics: DashboardMetric[];
   keyMoment: KeyMoment;
-  deepDive: DeepDive;
-  momentAnalysis: Moment[];
-  keyRedesignTips: RedesignTip[];
+  deepDive: DeepDiveConcept[];
+  annotatedTranscript: AnnotatedTurn[];
+}
+
+export interface Turn {
+  speaker: string;
+  text: string;
+}
+
+export interface SampleTranscript {
+  id: string;
+  dataset: string;
+  title: string;
+  tags: string[];
+  turns: Turn[];
 }

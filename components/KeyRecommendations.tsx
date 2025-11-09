@@ -1,29 +1,35 @@
 import React from 'react';
-import type { RedesignTip } from '../types';
-import { LightbulbIcon } from './icons';
+import type { KeyFormulation } from '../types';
+import { getFormulationColorByIndex } from '../utils/colorUtils';
 
 interface KeyRecommendationsProps {
-  tips: RedesignTip[];
+  formulations: KeyFormulation[];
 }
 
-const KeyRecommendations: React.FC<KeyRecommendationsProps> = ({ tips }) => {
-  if (!tips || tips.length === 0) {
+const KeyRecommendations: React.FC<KeyRecommendationsProps> = ({ formulations }) => {
+  if (!formulations || formulations.length === 0) {
     return null;
   }
   
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="insight-card">
       <div style={styles.header}>
-        <LightbulbIcon />
-        <h2 style={styles.title}>Top Design Takeaways</h2>
+        <h2 style={styles.title}>✨ Key Formulations</h2>
       </div>
       <ul style={styles.list}>
-        {tips.map((item, index) => (
-          <li key={index} style={styles.listItem}>
-            <span style={styles.constructTag}>{item.construct}</span>
-            <p style={styles.tipText}>{item.tip}</p>
-          </li>
-        ))}
+        {formulations.map((item, index) => {
+          const itemStyle: React.CSSProperties = {
+            ...styles.listItem,
+            borderLeft: `4px solid var(${getFormulationColorByIndex(index)})`,
+          };
+          
+          return (
+            <li key={index} style={itemStyle}>
+              <h3 style={styles.formulationTitle}>{item.title}</h3>
+              <p style={styles.tipText}>{item.description}</p>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -31,9 +37,7 @@ const KeyRecommendations: React.FC<KeyRecommendationsProps> = ({ tips }) => {
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    border: '1px solid var(--primary-purple)',
-    backgroundColor: '#FBF5FF',
-    borderRadius: 'var(--border-radius)',
+    backgroundColor: 'var(--card-background)',
     padding: '20px 24px',
     marginBottom: '30px',
   },
@@ -41,7 +45,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    color: 'var(--primary-purple)',
+    color: 'var(--text-color)',
+    marginBottom: '16px',
   },
   title: {
     margin: 0,
@@ -50,27 +55,23 @@ const styles: { [key: string]: React.CSSProperties } = {
   list: {
     listStyle: 'none',
     padding: 0,
-    marginTop: '16px',
+    margin: 0,
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
+    gap: '20px',
   },
   listItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
+    paddingLeft: '16px',
   },
-  constructTag: {
+  formulationTitle: {
+    margin: '0 0 4px 0',
+    fontSize: '1em',
     fontWeight: 700,
-    fontSize: '0.9em',
-    padding: '2px 8px',
-    backgroundColor: 'rgba(122, 40, 203, 0.1)',
-    borderRadius: '4px',
-    alignSelf: 'flex-start',
   },
   tipText: {
     margin: 0,
     lineHeight: 1.6,
+    color: 'var(--text-color-secondary)',
   }
 };
 
