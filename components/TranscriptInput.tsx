@@ -217,6 +217,12 @@ const TranscriptInput: React.FC<TranscriptInputProps> = ({ onSubmit, isLoading, 
                     {charCount} / {charLimit}
                 </div>
               </div>
+              <div style={styles.privacyDisclaimer}>
+                  <div style={{ flexShrink: 0, paddingTop: '2px' }}><WarningIcon /></div>
+                  <span style={{ flex: 1 }}>
+                      For your privacy, please remove sensitive information. Transcripts and analyses are stored in your browser's local storage for the History feature. You can clear this data at any time.
+                  </span>
+              </div>
             </div>
           )}
         </div>
@@ -366,6 +372,19 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '8px',
     flex: '1',
     paddingRight: '10px',
+  },
+  privacyDisclaimer: {
+    fontSize: '0.85em',
+    color: 'var(--text-color-secondary)',
+    textAlign: 'left',
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '8px',
+    marginTop: '12px',
+    padding: '10px 12px',
+    backgroundColor: 'var(--subtle-background)',
+    borderRadius: 'var(--border-radius)',
+    border: '1px solid var(--border-color-light)',
   },
   emptyStateContainer: {
     padding: '20px',

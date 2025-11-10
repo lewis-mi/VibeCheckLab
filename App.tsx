@@ -59,7 +59,7 @@ const App: React.FC = () => {
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
-  const handleAnalyze = async (transcript: string) => {
+  const startAnalysis = async (transcript: string) => {
     setView('loading');
     setError(null);
     setCurrentTranscript(transcript);
@@ -77,7 +77,6 @@ const App: React.FC = () => {
     }
     
     localStorage.setItem('vibe-check-requests', JSON.stringify([...recentRequests, now]));
-
 
     try {
       const result = await analyzeTranscript(transcript);
@@ -102,6 +101,10 @@ const App: React.FC = () => {
       }
       setView('input');
     }
+  };
+
+  const handleAnalyze = (transcript: string) => {
+    startAnalysis(transcript);
   };
 
   const handleReset = () => {

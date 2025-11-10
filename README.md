@@ -19,34 +19,43 @@ This tool is designed for students, researchers, and designers of human-computer
 
 ## 🚀 Tech Stack & Architecture
 
-This project is a client-side, single-page application.
+This project uses a frontend-backend architecture.
 
-*   **Frontend:** A **React** application built with **Vite** and written in **TypeScript**.
-*   **AI Model:** **Google's Gemini API** (`gemini-2.5-pro`) provides the core analysis. The API is called directly from the frontend, requesting a structured JSON output from the model based on a detailed system prompt and schema.
+*   **Frontend:** A **React** single-page application built with **Vite** and written in **TypeScript**.
+*   **Backend:** A serverless function acting as a secure proxy between the client and the Gemini API.
+*   **AI Model:** **Google's Gemini API** (`gemini-2.5-pro`) is called from the backend proxy.
 *   **Styling:** A combination of CSS-in-JS for component-specific styles and global CSS variables for robust theming (light and dark modes).
 
 ## ⚙️ How It Works
 
 1.  A user selects a sample transcript or pastes their own into the React UI.
-2.  Upon clicking "Check the vibe," the application sends the transcript, a detailed system prompt, and a JSON schema directly to the **Gemini API** from the browser.
-3.  The API key is securely provided by the execution environment and is not handled by the client-side code.
-4.  Gemini returns a structured JSON object containing the full analysis.
-5.  The React app validates and parses the JSON, then uses it to render the interactive analysis dashboard.
+2.  Upon clicking "Check the vibe," the frontend sends the transcript to a backend proxy function (at `/api/analyze`).
+3.  The backend function, running in a secure server environment, retrieves a stored API key from its environment variables.
+4.  The backend securely calls the **Google Gemini API** with the transcript, a system prompt, and a response schema.
+5.  Gemini returns a structured JSON object to the backend proxy.
+6.  The proxy forwards this JSON response back to the client-side React app.
+7.  The React app validates and parses the JSON, then uses it to render the interactive analysis dashboard.
 
 ## 💻 How to Run This Project
 
-This project uses Vite as its development server and build tool.
+This project uses Vite as its development server and build tool. It assumes a hosting environment (like Vercel or Netlify) that can run serverless functions.
 
 1.  **Install Dependencies:**
     ```bash
     npm install
     ```
 
-2.  **Run the Development Server:**
-    An `API_KEY` for the Gemini API must be available as an environment variable in your execution context.
+2.  **Set up Environment Variables:**
+    Your `API_KEY` for the Gemini API must be available as an environment variable in the serverless function's execution context. For local development with platforms like Vercel, you can create a `.env` file in the project root:
+    ```
+    API_KEY=your_gemini_api_key_here
+    ```
+
+3.  **Run the Development Server:**
+    Use your platform's development command (e.g., `vercel dev`) to serve the Vite app and the serverless function proxy simultaneously. If running Vite directly, ensure you have a way to run and proxy to the API function.
     ```bash
     npm run dev
     ```
 
-3.  **Open the App:**
-    The application will be available at the URL provided by the Vite development server (typically `http://localhost:3000`).
+4.  **Open the App:**
+    The application will be available at the URL provided by the development server (typically `http://localhost:3000`).
