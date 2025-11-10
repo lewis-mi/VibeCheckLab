@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { analyzeTranscript } from './services/geminiService';
 import type { AnalysisResult } from './types';
@@ -198,7 +199,7 @@ const App: React.FC = () => {
         <Modal
             isOpen={isAboutOpen}
             onClose={() => setIsAboutOpen(false)}
-            title="About The Vibe Check Lab"
+            title="about the vibe check lab"
         >
             <div style={styles.aboutModalContainer}>
                 <p style={styles.aboutModalParagraph}>
@@ -269,6 +270,10 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   aboutModalButtonContainer: {
       marginTop: '24px',
+      display: 'flex',
+      justifyContent: 'center',
+      gap: '12px',
+      flexWrap: 'wrap',
   },
 };
 
