@@ -119,73 +119,90 @@ const mimeTypes: { [key: string]: string } = {
   '.svg': 'image/svg+xml',
 };
 
-async function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
-    let body = '';
-    req.on('data', chunk => {
-        body += chunk.toString();
+async function readRequestBody(req: IncomingMessage): Promise<string> {
+    return await new Promise((resolve, reject) => {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        req.on('end', () => resolve(body));
+        req.on('error', reject);
     });
+}
 
-    req.on('end', async () => {
-        try {
-            const { transcript } = JSON.parse(body);
+function validateTranscript(transcript: unknown) {
+    if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 25) {
+        const error = new Error('A valid transcript with at least 25 characters is required.');
+        (error as any).statusCode = 400;
+        throw error;
+    }
+    if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
+        const error = new Error(`Transcript exceeds the maximum length of ${MAX_TRANSCRIPT_LENGTH} characters.`);
+        (error as any).statusCode = 400;
+        throw error;
+    }
 
-            if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 25) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'A valid transcript with at least 25 characters is required.' }));
-                return;
-            }
-            if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: `Transcript exceeds the maximum length of ${MAX_TRANSCRIPT_LENGTH} characters.` }));
-                return;
-            }
-            for (const pii of piiPatterns) {
-                pii.pattern.lastIndex = 0;
-                if (pii.pattern.test(transcript)) {
-                    res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: `Potential ${pii.name} detected. Please remove all personal information.` }));
-                    return;
-                }
-            }
-            if (!process.env.API_KEY) {
-                console.error('API_KEY is not set in environment variables.');
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Server configuration error.' }));
-                return;
-            }
-
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: transcript,
-                config: {
-                    systemInstruction: MASTER_PROMPT,
-                    responseMimeType: 'application/json',
-                    responseSchema: analysisSchema,
-                },
-            });
-
-            const responseText = response.text;
-            if (!responseText) {
-                throw new Error('Received an empty response from the analysis service.');
-            }
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(responseText);
-
-        } catch (error: any) {
-            console.error('Error processing request:', error);
-            let errorMessage = 'An error occurred while communicating with the AI analysis service.';
-            if (error.message && error.message.includes('API key not valid')) {
-                errorMessage = 'The API key configured on the server is invalid.';
-                res.writeHead(401, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: errorMessage }));
-                return;
-            }
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: errorMessage }));
+    for (const pii of piiPatterns) {
+        pii.pattern.lastIndex = 0;
+        if (pii.pattern.test(transcript)) {
+            const error = new Error(`Potential ${pii.name} detected. Please remove all personal information.`);
+            (error as any).statusCode = 400;
+            throw error;
         }
+    }
+}
+
+async function performAnalysis(transcript: string) {
+    if (!process.env.API_KEY) {
+        console.error('API_KEY is not set in environment variables.');
+        const error = new Error('Server configuration error.');
+        (error as any).statusCode = 500;
+        throw error;
+    }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: transcript,
+        config: {
+            systemInstruction: MASTER_PROMPT,
+            responseMimeType: 'application/json',
+            responseSchema: analysisSchema,
+        },
     });
+
+    const responseText = response.text;
+    if (!responseText) {
+        throw new Error('Received an empty response from the analysis service.');
+    }
+
+    return responseText;
+}
+
+async function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
+    try {
+        const body = await readRequestBody(req);
+        const { transcript } = JSON.parse(body ?? '{}');
+
+        validateTranscript(transcript);
+
+        const responseText = await performAnalysis(transcript);
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(responseText);
+    } catch (error: any) {
+        console.error('Error processing request:', error);
+        let statusCode = error?.statusCode ?? 500;
+        let errorMessage = error?.message || 'An error occurred while communicating with the AI analysis service.';
+
+        if (error.message && error.message.includes('API key not valid')) {
+            statusCode = 401;
+            errorMessage = 'The API key configured on the server is invalid.';
+        }
+
+        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: errorMessage }));
+    }
 }
 
 function serveStaticFile(req: IncomingMessage, res: ServerResponse) {
@@ -240,7 +257,7 @@ function serveStaticFile(req: IncomingMessage, res: ServerResponse) {
     });
 }
 
-const server = http.createServer((req: IncomingMessage, res: ServerResponse) => {
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -251,13 +268,26 @@ const server = http.createServer((req: IncomingMessage, res: ServerResponse) => 
         return;
     }
 
-    if (req.url === '/api/analyze' && req.method === 'POST') {
-        handleApiRequest(req, res);
-    } else {
-        serveStaticFile(req, res);
+    if (req.method !== 'POST') {
+        res.writeHead(405, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+        return;
     }
-});
 
-server.listen(PORT, () => {
-    console.log(`Server listening on http://localhost:${PORT}`);
-});
+    await handleApiRequest(req, res);
+}
+
+if (import.meta.url === url.pathToFileURL(process.argv[1] ?? '').href) {
+    const server = http.createServer(async (req: IncomingMessage, res: ServerResponse) => {
+        if (req.url === '/api/analyze') {
+            await handler(req, res);
+            return;
+        }
+
+        serveStaticFile(req, res);
+    });
+
+    server.listen(PORT, () => {
+        console.log(`Server listening on http://localhost:${PORT}`);
+    });
+}

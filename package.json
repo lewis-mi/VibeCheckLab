@@ -7,7 +7,7 @@
     "dev": "vite",
     "start": "node dist/api/analyze.js",
     "start:api": "npm run build:api && node dist/api/analyze.js",
-    "build:api": "tsc api/analyze.ts --outDir dist --esModuleInterop --resolveJsonModule",
+    "build:api": "tsc --project tsconfig.api.json",
     "build": "vite build && npm run build:api",
     "preview": "vite preview"
   },
