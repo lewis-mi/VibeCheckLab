@@ -1,4 +1,5 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import http from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { GoogleGenAI, Type } from '@google/genai';
 
 const MAX_TRANSCRIPT_LENGTH = 10000;
@@ -101,73 +102,102 @@ Your analysis process is as follows:
 The user will provide the transcript. Your entire output MUST be the JSON analysis.`;
 
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Add CORS headers for security best practices
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*'); // In production, restrict this to your frontend domain
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+async function requestHandler(req: IncomingMessage, res: ServerResponse) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Adjust for production
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // Handle preflight requests for CORS
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.writeHead(204);
+    res.end();
+    return;
   }
   
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+    return;
   }
 
-  const { transcript } = req.body;
+  let body = '';
+  req.on('data', chunk => {
+    body += chunk.toString();
+  });
 
-  // --- Server-Side Validation ---
-  if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 25) {
-    return res.status(400).json({ error: 'A valid transcript with at least 25 characters is required.' });
-  }
+  req.on('end', async () => {
+    try {
+      const { transcript } = JSON.parse(body);
 
-  if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
-    return res.status(400).json({ error: `Transcript exceeds the maximum length of ${MAX_TRANSCRIPT_LENGTH} characters.` });
-  }
+      // --- Server-Side Validation ---
+      if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 25) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'A valid transcript with at least 25 characters is required.' }));
+        return;
+      }
 
-  for (const pii of piiPatterns) {
-    pii.pattern.lastIndex = 0; // Reset regex state
-    if (pii.pattern.test(transcript)) {
-      return res.status(400).json({ error: `Potential ${pii.name} detected. Please remove all personal information before analyzing.` });
+      if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `Transcript exceeds the maximum length of ${MAX_TRANSCRIPT_LENGTH} characters.` }));
+        return;
+      }
+
+      for (const pii of piiPatterns) {
+        pii.pattern.lastIndex = 0; // Reset regex state
+        if (pii.pattern.test(transcript)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: `Potential ${pii.name} detected. Please remove all personal information before analyzing.` }));
+          return;
+        }
+      }
+      // --- End Server-Side Validation ---
+      
+      if (!process.env.API_KEY) {
+        console.error('API_KEY is not set in environment variables.');
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Server configuration error.' }));
+        return;
+      }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: transcript,
+        config: {
+          systemInstruction: MASTER_PROMPT,
+          responseMimeType: 'application/json',
+          responseSchema: analysisSchema,
+        },
+      });
+
+      const responseText = response.text;
+      if (!responseText) {
+        throw new Error('Received an empty response from the analysis service.');
+      }
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(responseText);
+
+    } catch (error: any) {
+      console.error('Error processing request:', error);
+      
+      let errorMessage = 'An error occurred while communicating with the AI analysis service.';
+      if (error.message && error.message.includes('API key not valid')) {
+          errorMessage = 'The API key configured on the server is invalid.';
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: errorMessage }));
+          return;
+      }
+      
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: errorMessage }));
     }
-  }
-  // --- End Server-Side Validation ---
-  
-  if (!process.env.API_KEY) {
-    console.error('API_KEY is not set in environment variables.');
-    return res.status(500).json({ error: 'Server configuration error.' });
-  }
-
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: transcript,
-      config: {
-        systemInstruction: MASTER_PROMPT,
-        responseMimeType: 'application/json',
-        responseSchema: analysisSchema,
-      },
-    });
-
-    const responseText = response.text;
-    if (!responseText) {
-      throw new Error('Received an empty response from the analysis service.');
-    }
-    
-    res.setHeader('Content-Type', 'application/json');
-    res.status(200).send(responseText);
-
-  } catch (error: any) {
-    console.error('Error calling Gemini API:', error);
-    
-    if (error.message && error.message.includes('API key not valid')) {
-        return res.status(401).json({ error: 'The API key configured on the server is invalid.' });
-    }
-    
-    res.status(500).json({ error: 'An error occurred while communicating with the AI analysis service.' });
-  }
+  });
 }
+
+const server = http.createServer(requestHandler);
+const PORT = 3001;
+
+server.listen(PORT, () => {
+  console.log(`API server listening on http://localhost:${PORT}`);
+});
