@@ -19,32 +19,31 @@ This tool is designed for students, researchers, and designers of human-computer
 
 ## 🚀 Tech Stack & Architecture
 
-This project uses a frontend-backend architecture.
+This project uses a unified frontend-backend architecture suitable for containerization.
 
 *   **Frontend:** A **React** single-page application built with **Vite** and written in **TypeScript**.
-*   **Backend:** A serverless function acting as a secure proxy between the client and the Gemini API.
-*   **AI Model:** **Google's Gemini API** (`gemini-2.5-flash`) is called from the backend proxy.
+*   **Backend:** A standalone **Node.js** server that both serves the frontend static assets and acts as a secure proxy for the Gemini API.
+*   **AI Model:** **Google's Gemini API** (`gemini-2.5-flash`) is called from the backend server.
 *   **Styling:** A combination of CSS-in-JS for component-specific styles and global CSS variables for robust theming (light and dark modes).
 
 ## 🔒 Security Features
 
-*   **Backend API Proxy:** The Gemini API key is securely stored as a server-side environment variable and never exposed to the client. All API calls are routed through a backend proxy.
+*   **Backend API Proxy:** The Gemini API key is securely stored as a server-side environment variable and never exposed to the client. All API calls are routed through the backend server.
 *   **Server-Side Validation:** The backend enforces transcript length limits and scans for personally identifiable information (PII) to prevent abuse and protect user privacy.
-*   **HTTP Security Headers:** A `vercel.json` file is used to configure important security headers like Content-Security-Policy (CSP) to mitigate XSS and other common web vulnerabilities.
 
 ## ⚙️ How It Works
 
 1.  A user selects a sample transcript or pastes their own into the React UI.
-2.  Upon clicking "Check the vibe," the frontend sends the transcript to a backend proxy function (at `/api/analyze`).
-3.  The backend function validates the input (length, PII) in a secure server environment.
-4.  The backend retrieves a stored API key from its environment variables and securely calls the **Google Gemini API** with the transcript, a system prompt, and a response schema.
-5.  Gemini returns a structured JSON object to the backend proxy.
-6.  The proxy forwards this JSON response back to the client-side React app.
+2.  Upon clicking "Check the vibe," the frontend sends the transcript to the backend server at `/api/analyze`.
+3.  The backend validates the input (length, PII) in a secure server environment.
+4.  The backend retrieves the API key from its environment variables and securely calls the **Google Gemini API** with the transcript, a system prompt, and a response schema.
+5.  Gemini returns a structured JSON object to the backend.
+6.  The backend forwards this JSON response back to the client-side React app.
 7.  The React app validates and parses the JSON, then uses it to render the interactive analysis dashboard.
 
 ## 💻 How to Run This Project
 
-This project uses Vite as its development server and build tool. It assumes a hosting environment (like Vercel or Netlify) that can run serverless functions and apply header configurations from a `vercel.json` file.
+This project uses Vite for its development server and a standalone Node.js server for the API.
 
 1.  **Install Dependencies:**
     ```bash
@@ -52,16 +51,51 @@ This project uses Vite as its development server and build tool. It assumes a ho
     ```
 
 2.  **Set up Environment Variables:**
-    Your `API_KEY` for the Gemini API must be available as an environment variable in the serverless function's execution context. For local development with platforms like Vercel, you can create a `.env` file in the project root:
+    Your `API_KEY` for the Gemini API must be available as an environment variable. Create a `.env` file in the project root:
     ```
     API_KEY=your_gemini_api_key_here
     ```
 
-3.  **Run the Development Server:**
-    Use your platform's development command (e.g., `vercel dev`) to serve the Vite app and the serverless function proxy simultaneously. If running Vite directly, ensure you have a way to run and proxy to the API function.
+3.  **Run the Development Environment:**
+    You will need to run the API server and the frontend server in two separate terminals.
+    
+    *Terminal 1: Start the API Server*
+    ```bash
+    npm run start:api
+    ```
+
+    *Terminal 2: Start the Vite Frontend Server*
     ```bash
     npm run dev
     ```
 
 4.  **Open the App:**
-    The application will be available at the URL provided by the development server (typically `http://localhost:3000`).
+    The application will be available at `http://localhost:3000`. The Vite server will automatically proxy API requests to your Node.js server.
+
+### ☁️ How to Deploy to Google Cloud Run
+
+The decoupled architecture of this project is well-suited for containerized deployment on platforms like Google Cloud Run.
+
+1.  **Create a `Dockerfile`:**
+    A `Dockerfile` is included in the project root. It uses a multi-stage build to create a lean, production-ready container image that contains both the frontend and backend.
+
+2.  **Build the Docker Image:**
+    From your project root, build the image using Google Cloud Build (or a local Docker daemon) and tag it for Artifact Registry. Replace `PROJECT_ID`, `REGION`, and `REPO_NAME` with your GCP details.
+
+    ```bash
+    gcloud builds submit --tag REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/vibe-check-lab
+    ```
+
+3.  **Deploy to Cloud Run:**
+    Deploy the image from Artifact Registry to Cloud Run.
+
+    ```bash
+    gcloud run deploy vibe-check-lab \
+      --image REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/vibe-check-lab \
+      --platform managed \
+      --region REGION \
+      --allow-unauthenticated \
+      --set-env-vars="API_KEY=your_gemini_api_key_here"
+    ```
+    *   `--allow-unauthenticated` makes the service public.
+    *   Use `--set-env-vars` to securely provide your Gemini API key to the Cloud Run instance. Do not hardcode it in the Dockerfile.

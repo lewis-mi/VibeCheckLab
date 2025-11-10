@@ -1,8 +1,16 @@
 import http from 'http';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { GoogleGenAI, Type } from '@google/genai';
+import fs from 'fs';
+import path from 'path';
+import url from 'url';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const MAX_TRANSCRIPT_LENGTH = 10000;
+const PORT = process.env.PORT || 3001;
 
 const piiPatterns = [
   { name: 'email address', pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi },
@@ -101,103 +109,160 @@ Your analysis process is as follows:
 
 The user will provide the transcript. Your entire output MUST be the JSON analysis.`;
 
+const mimeTypes: { [key: string]: string } = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+};
 
-async function requestHandler(req: IncomingMessage, res: ServerResponse) {
-  // Add CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Adjust for production
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+async function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
+    let body = '';
+    req.on('data', chunk => {
+        body += chunk.toString();
+    });
 
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-    return;
-  }
-  
-  if (req.method !== 'POST') {
-    res.writeHead(405, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Method Not Allowed' }));
-    return;
-  }
+    req.on('end', async () => {
+        try {
+            const { transcript } = JSON.parse(body);
 
-  let body = '';
-  req.on('data', chunk => {
-    body += chunk.toString();
-  });
+            if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 25) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'A valid transcript with at least 25 characters is required.' }));
+                return;
+            }
+            if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: `Transcript exceeds the maximum length of ${MAX_TRANSCRIPT_LENGTH} characters.` }));
+                return;
+            }
+            for (const pii of piiPatterns) {
+                pii.pattern.lastIndex = 0;
+                if (pii.pattern.test(transcript)) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: `Potential ${pii.name} detected. Please remove all personal information.` }));
+                    return;
+                }
+            }
+            if (!process.env.API_KEY) {
+                console.error('API_KEY is not set in environment variables.');
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Server configuration error.' }));
+                return;
+            }
 
-  req.on('end', async () => {
-    try {
-      const { transcript } = JSON.parse(body);
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: transcript,
+                config: {
+                    systemInstruction: MASTER_PROMPT,
+                    responseMimeType: 'application/json',
+                    responseSchema: analysisSchema,
+                },
+            });
 
-      // --- Server-Side Validation ---
-      if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 25) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'A valid transcript with at least 25 characters is required.' }));
-        return;
-      }
+            const responseText = response.text;
+            if (!responseText) {
+                throw new Error('Received an empty response from the analysis service.');
+            }
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(responseText);
 
-      if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: `Transcript exceeds the maximum length of ${MAX_TRANSCRIPT_LENGTH} characters.` }));
-        return;
-      }
-
-      for (const pii of piiPatterns) {
-        pii.pattern.lastIndex = 0; // Reset regex state
-        if (pii.pattern.test(transcript)) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: `Potential ${pii.name} detected. Please remove all personal information before analyzing.` }));
-          return;
+        } catch (error: any) {
+            console.error('Error processing request:', error);
+            let errorMessage = 'An error occurred while communicating with the AI analysis service.';
+            if (error.message && error.message.includes('API key not valid')) {
+                errorMessage = 'The API key configured on the server is invalid.';
+                res.writeHead(401, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: errorMessage }));
+                return;
+            }
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: errorMessage }));
         }
-      }
-      // --- End Server-Side Validation ---
-      
-      if (!process.env.API_KEY) {
-        console.error('API_KEY is not set in environment variables.');
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Server configuration error.' }));
-        return;
-      }
-
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: transcript,
-        config: {
-          systemInstruction: MASTER_PROMPT,
-          responseMimeType: 'application/json',
-          responseSchema: analysisSchema,
-        },
-      });
-
-      const responseText = response.text;
-      if (!responseText) {
-        throw new Error('Received an empty response from the analysis service.');
-      }
-      
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(responseText);
-
-    } catch (error: any) {
-      console.error('Error processing request:', error);
-      
-      let errorMessage = 'An error occurred while communicating with the AI analysis service.';
-      if (error.message && error.message.includes('API key not valid')) {
-          errorMessage = 'The API key configured on the server is invalid.';
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: errorMessage }));
-          return;
-      }
-      
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: errorMessage }));
-    }
-  });
+    });
 }
 
-const server = http.createServer(requestHandler);
-const PORT = 3001;
+function serveStaticFile(req: IncomingMessage, res: ServerResponse) {
+    const parsedUrl = url.parse(req.url!);
+    const pathname = parsedUrl.pathname || '/';
+
+    // The root of our static files is one level up from the `api` directory inside `dist`.
+    const staticFileRoot = path.resolve(__dirname, '..');
+    
+    // Prevent path traversal attacks
+    const safePathSuffix = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
+    let staticFilePath = path.join(staticFileRoot, safePathSuffix);
+
+    fs.stat(staticFilePath, (err, stats) => {
+        // Fallback to serving index.html for SPA routing
+        const serveIndex = () => {
+            const indexPath = path.join(staticFileRoot, 'index.html');
+            fs.readFile(indexPath, (indexErr, indexData) => {
+                if (indexErr) {
+                    console.error("CRITICAL: Could not read index.html from path:", indexPath, indexErr);
+                    res.writeHead(500, { 'Content-Type': 'text/plain' });
+                    res.end('Internal Server Error: App entry point not found.');
+                } else {
+                    res.writeHead(200, { 'Content-Type': 'text/html' });
+                    res.end(indexData);
+                }
+            });
+        };
+
+        if (err) {
+            // If stat fails (e.g., file not found for a route like /about), serve index.
+            serveIndex();
+            return;
+        }
+
+        if (stats.isDirectory()) {
+            // If the path is a directory, also serve index.
+            serveIndex();
+            return;
+        }
+
+        // Otherwise, it's a file, so serve it.
+        fs.readFile(staticFilePath, (fileErr, data) => {
+            if (fileErr) {
+                serveIndex();
+            } else {
+                const ext = path.parse(staticFilePath).ext;
+                res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+                res.end(data);
+            }
+        });
+    });
+}
+
+const server = http.createServer((req: IncomingMessage, res: ServerResponse) => {
+    if (req.url?.startsWith('/api/')) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        if (req.method === 'OPTIONS') {
+            res.writeHead(204);
+            res.end();
+            return;
+        }
+
+        if (req.url === '/api/analyze' && req.method === 'POST') {
+            handleApiRequest(req, res);
+        } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'API route not found' }));
+        }
+    } else {
+        serveStaticFile(req, res);
+    }
+});
 
 server.listen(PORT, () => {
-  console.log(`API server listening on http://localhost:${PORT}`);
+    console.log(`Server listening on http://localhost:${PORT}`);
 });

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start": "node dist/api/analyze.js",
     "start:api": "npm run build:api && node dist/api/analyze.js",
     "build:api": "tsc api/analyze.ts --outDir dist --esModuleInterop --resolveJsonModule",
     "build": "vite build && npm run build:api",
