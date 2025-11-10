@@ -55,11 +55,13 @@ const TranscriptInput: React.FC<TranscriptInputProps> = ({ onSubmit, isLoading, 
         return;
       }
 
-      // PII Patterns
+      // PII Patterns - Enhanced for better detection
       const piiPatterns = [
-        { name: 'email address', pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i },
-        { name: 'phone number', pattern: /\b(?:\+?\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/i },
-        { name: 'credit card number', pattern: /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/i }
+        { name: 'email address', pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi },
+        { name: 'phone number', pattern: /\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/gi },
+        { name: 'credit card number', pattern: /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9]{2})[0-9]{12}|3[47][0-9]{13})\b/gi },
+        { name: 'Social Security Number', pattern: /\b\d{3}-\d{2}-\d{4}\b/gi },
+        { name: 'IP address', pattern: /\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/gi }
       ];
 
       for (const pii of piiPatterns) {
