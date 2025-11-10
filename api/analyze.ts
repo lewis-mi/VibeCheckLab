@@ -241,23 +241,18 @@ function serveStaticFile(req: IncomingMessage, res: ServerResponse) {
 }
 
 const server = http.createServer((req: IncomingMessage, res: ServerResponse) => {
-    if (req.url?.startsWith('/api/')) {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-        if (req.method === 'OPTIONS') {
-            res.writeHead(204);
-            res.end();
-            return;
-        }
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
 
-        if (req.url === '/api/analyze' && req.method === 'POST') {
-            handleApiRequest(req, res);
-        } else {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'API route not found' }));
-        }
+    if (req.url === '/api/analyze' && req.method === 'POST') {
+        handleApiRequest(req, res);
     } else {
         serveStaticFile(req, res);
     }
