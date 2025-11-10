@@ -1,6 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
 
+const MAX_TRANSCRIPT_LENGTH = 10000;
+
+const piiPatterns = [
+  { name: 'email address', pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi },
+  { name: 'phone number', pattern: /\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/gi },
+  { name: 'credit card number', pattern: /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9]{2})[0-9]{12}|3[47][0-9]{13})\b/gi },
+  { name: 'Social Security Number', pattern: /\b\d{3}-\d{2}-\d{4}\b/gi },
+  { name: 'IP address', pattern: /\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/gi }
+];
+
 const analysisSchema = {
     type: Type.OBJECT,
     properties: {
@@ -92,15 +102,39 @@ The user will provide the transcript. Your entire output MUST be the JSON analys
 
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Add CORS headers for security best practices
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*'); // In production, restrict this to your frontend domain
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight requests for CORS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   const { transcript } = req.body;
 
-  if (!transcript || typeof transcript !== 'string' || transcript.trim().length === 0) {
-    return res.status(400).json({ error: 'A valid transcript is required.' });
+  // --- Server-Side Validation ---
+  if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 25) {
+    return res.status(400).json({ error: 'A valid transcript with at least 25 characters is required.' });
   }
+
+  if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
+    return res.status(400).json({ error: `Transcript exceeds the maximum length of ${MAX_TRANSCRIPT_LENGTH} characters.` });
+  }
+
+  for (const pii of piiPatterns) {
+    pii.pattern.lastIndex = 0; // Reset regex state
+    if (pii.pattern.test(transcript)) {
+      return res.status(400).json({ error: `Potential ${pii.name} detected. Please remove all personal information before analyzing.` });
+    }
+  }
+  // --- End Server-Side Validation ---
   
   if (!process.env.API_KEY) {
     console.error('API_KEY is not set in environment variables.');

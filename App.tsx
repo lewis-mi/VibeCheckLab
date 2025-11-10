@@ -64,20 +64,6 @@ const App: React.FC = () => {
     setError(null);
     setCurrentTranscript(transcript);
 
-    // Client-side rate limiting
-    const requestTimestamps = JSON.parse(localStorage.getItem('vibe-check-requests') || '[]');
-    const now = Date.now();
-    const oneMinuteAgo = now - 60000;
-    const recentRequests = requestTimestamps.filter((ts: number) => ts > oneMinuteAgo);
-
-    if (recentRequests.length >= 5) {
-      setError("You've made too many requests. Please wait a moment before trying again.");
-      setView('input');
-      return;
-    }
-    
-    localStorage.setItem('vibe-check-requests', JSON.stringify([...recentRequests, now]));
-
     try {
       const result = await analyzeTranscript(transcript);
       setAnalysis(result);

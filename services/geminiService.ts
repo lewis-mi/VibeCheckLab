@@ -68,7 +68,7 @@ const parseJsonResponse = (text: string): unknown => {
 
 export const analyzeTranscript = async (transcript: string): Promise<AnalysisResult> => {
   try {
-    const response = await fetch('/api/analyze', {
+    const response = await fetch('http://localhost:8080/analyze', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

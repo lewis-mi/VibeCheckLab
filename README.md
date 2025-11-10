@@ -23,22 +23,28 @@ This project uses a frontend-backend architecture.
 
 *   **Frontend:** A **React** single-page application built with **Vite** and written in **TypeScript**.
 *   **Backend:** A serverless function acting as a secure proxy between the client and the Gemini API.
-*   **AI Model:** **Google's Gemini API** (`gemini-2.5-pro`) is called from the backend proxy.
+*   **AI Model:** **Google's Gemini API** (`gemini-2.5-flash`) is called from the backend proxy.
 *   **Styling:** A combination of CSS-in-JS for component-specific styles and global CSS variables for robust theming (light and dark modes).
+
+## 🔒 Security Features
+
+*   **Backend API Proxy:** The Gemini API key is securely stored as a server-side environment variable and never exposed to the client. All API calls are routed through a backend proxy.
+*   **Server-Side Validation:** The backend enforces transcript length limits and scans for personally identifiable information (PII) to prevent abuse and protect user privacy.
+*   **HTTP Security Headers:** A `vercel.json` file is used to configure important security headers like Content-Security-Policy (CSP) to mitigate XSS and other common web vulnerabilities.
 
 ## ⚙️ How It Works
 
 1.  A user selects a sample transcript or pastes their own into the React UI.
 2.  Upon clicking "Check the vibe," the frontend sends the transcript to a backend proxy function (at `/api/analyze`).
-3.  The backend function, running in a secure server environment, retrieves a stored API key from its environment variables.
-4.  The backend securely calls the **Google Gemini API** with the transcript, a system prompt, and a response schema.
+3.  The backend function validates the input (length, PII) in a secure server environment.
+4.  The backend retrieves a stored API key from its environment variables and securely calls the **Google Gemini API** with the transcript, a system prompt, and a response schema.
 5.  Gemini returns a structured JSON object to the backend proxy.
 6.  The proxy forwards this JSON response back to the client-side React app.
 7.  The React app validates and parses the JSON, then uses it to render the interactive analysis dashboard.
 
 ## 💻 How to Run This Project
 
-This project uses Vite as its development server and build tool. It assumes a hosting environment (like Vercel or Netlify) that can run serverless functions.
+This project uses Vite as its development server and build tool. It assumes a hosting environment (like Vercel or Netlify) that can run serverless functions and apply header configurations from a `vercel.json` file.
 
 1.  **Install Dependencies:**
     ```bash
