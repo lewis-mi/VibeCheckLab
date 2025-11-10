@@ -15,18 +15,25 @@ const loadingMessages = [
 ];
 
 const LoadingSpinner: React.FC = () => {
-  const [message, setMessage] = useState('');
+  const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
-    // Select a random message when the component mounts
-    const randomIndex = Math.floor(Math.random() * loadingMessages.length);
-    setMessage(loadingMessages[randomIndex]);
+    // Cycle through messages to create a sense of progress
+    const intervalId = setInterval(() => {
+      setMessageIndex((prevIndex) => (prevIndex + 1) % loadingMessages.length);
+    }, 1500); // Timed to sync with the 1.5s fade animation in index.html
+
+    return () => clearInterval(intervalId); // Cleanup on component unmount
   }, []);
 
   return (
     <div style={styles.container}>
         <WordFlowAnimation />
-        <p style={styles.loadingText}>{message}</p>
+        {/* The key prop is crucial here. It forces React to re-mount the <p> element
+            when the message changes, which re-triggers the CSS animation. */}
+        <p key={messageIndex} style={styles.loadingText} className="anim-fade-in-out">
+            {loadingMessages[messageIndex]}
+        </p>
     </div>
   );
 };
@@ -45,6 +52,9 @@ const styles: { [key:string]: React.CSSProperties } = {
     fontSize: '1.2em',
     color: 'var(--text-color-secondary)',
     fontFamily: 'var(--font-accent)',
+    height: '2em', // Prevents layout shift between messages
+    display: 'flex',
+    alignItems: 'center',
   },
 };
 

@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { sampleTranscripts } from '../data/sampleTranscripts';
+import { precomputedAnalyses } from '../data/precomputedAnalyses';
 import CustomSelect from './CustomSelect';
 import { WarningIcon } from './icons';
+import type { AnalysisResult } from '../types';
 
 interface TranscriptInputProps {
   onSubmit: (transcript: string) => void;
+  onInstantAnalysis: (data: { analysis: AnalysisResult, transcript: string, id: string }) => void;
   isLoading: boolean;
   isMobile: boolean;
 }
@@ -20,7 +23,7 @@ const EmptyStateOnboarding: React.FC = () => (
   </div>
 );
 
-const TranscriptInput: React.FC<TranscriptInputProps> = ({ onSubmit, isLoading, isMobile }) => {
+const TranscriptInput: React.FC<TranscriptInputProps> = ({ onSubmit, onInstantAnalysis, isLoading, isMobile }) => {
   const [activeTab, setActiveTab] = useState<'examples' | 'custom'>('examples');
   const [customTranscript, setCustomTranscript] = useState('');
   const [selectedExampleId, setSelectedExampleId] = useState<string>('');
@@ -96,18 +99,28 @@ const TranscriptInput: React.FC<TranscriptInputProps> = ({ onSubmit, isLoading, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const transcriptToSubmit = activeTab === 'examples' ? examplePreview : customTranscript;
-    
-    // The button is disabled, but as a fallback, don't submit if invalid.
     if (isSubmitDisabled) return;
 
-    const lines = transcriptToSubmit.split('\n').filter(line => line.trim() !== '');
-    if (lines.length < 2) {
-      alert("Whoa there! A monologue doesn't have a 'vibe.' Please provide a conversation with at least two lines.");
-      return;
+    if (activeTab === 'examples') {
+      const analysis = precomputedAnalyses[selectedExampleId];
+      if (analysis) {
+        // Use the pre-computed analysis for an instant result
+        onInstantAnalysis({ analysis, transcript: examplePreview, id: selectedExampleId });
+      } else {
+        // Fallback to live analysis if a pre-computed one isn't found
+        console.warn(`No precomputed analysis for example ID: ${selectedExampleId}. Using live analysis.`);
+        onSubmit(examplePreview);
+      }
+    } else {
+      // For custom transcripts, always use the live analysis
+      const transcriptToSubmit = customTranscript;
+      const lines = transcriptToSubmit.split('\n').filter(line => line.trim() !== '');
+      if (lines.length < 2) {
+        alert("Whoa there! A monologue doesn't have a 'vibe.' Please provide a conversation with at least two lines.");
+        return;
+      }
+      onSubmit(transcriptToSubmit);
     }
-    
-    onSubmit(transcriptToSubmit);
   };
   
   const charCount = customTranscript.length;

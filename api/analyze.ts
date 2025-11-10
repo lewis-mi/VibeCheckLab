@@ -40,20 +40,6 @@ const analysisSchema = {
             },
             required: ['transcriptSnippet', 'analysis']
         },
-        deepDive: {
-            type: Type.ARRAY,
-            description: 'An array of 6 deep-dive academic explanations for each dashboard metric.',
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    concept: { type: Type.STRING, description: 'The name of the academic concept (must match a dashboard metric).' },
-                    explanation: { type: Type.STRING, description: 'A brief, academic definition of the concept.' },
-                    analysis: { type: Type.STRING, description: 'A one-sentence analysis of how this concept applies to the provided transcript.' },
-                    source: { type: Type.STRING, description: 'The primary academic source for this concept (e.g., "Brown & Levinson (1987)").' }
-                },
-                required: ['concept', 'explanation', 'analysis', 'source']
-            }
-        },
         annotatedTranscript: {
             type: Type.ARRAY,
             description: 'The original transcript, annotated with specific insights. Every turn must be included.',
@@ -81,7 +67,7 @@ const analysisSchema = {
             }
         }
     },
-    required: ['vibeTitle', 'keyFormulations', 'dashboardMetrics', 'keyMoment', 'deepDive', 'annotatedTranscript']
+    required: ['vibeTitle', 'keyFormulations', 'dashboardMetrics', 'keyMoment', 'annotatedTranscript']
 };
 
 const MASTER_PROMPT = `You are an expert Conversation Analyst at the "Vibe Check Lab." Your task is to analyze a provided transcript of a human-AI conversation and produce a detailed, structured analysis in JSON format.
@@ -99,9 +85,8 @@ Your analysis process is as follows:
 2.  **Identify Core Dynamics:** Based on the frameworks, identify the top 3 most critical design takeaways or "Key Formulations" that define the conversation's success or failure. These are the foundational insights.
 3.  **Score and Analyze Metrics:** Evaluate the conversation against the 6 core dashboard metrics: Rapport, Purpose, Flow, Implicature, Cohesion, and Accommodation. Provide a score and a concise analysis for each.
 4.  **Pinpoint the Catalyst:** Identify the single most important "Key Moment" in the transcript that best exemplifies the overall vibe.
-5.  **Annotate the Transcript:** Go back through the transcript turn-by-turn. For each turn, identify specific phrases or sentences ("snippets") that are strong examples of one of your 3 Key Formulations. Create annotations for these snippets.
-6.  **Provide Academic Context:** For each of the 6 core metrics, provide a brief academic definition and explain how it applies to this specific transcript.
-7.  **Format as JSON:** Structure your entire analysis into a single, valid JSON object according to the provided schema. Do not output any text outside of the JSON object.
+5.  **Annotate the Transcript:** Go back through the transcript. Find the 5-7 most compelling phrases across the entire conversation that are strong examples of one of your 3 Key Formulations. Create annotations for these specific phrases. Most turns will not have an annotation.
+6.  **Format as JSON:** Structure your entire analysis into a single, valid JSON object according to the provided schema. Do not output any text outside of the JSON object.
 
 The user will provide the transcript. Your entire output MUST be the JSON analysis.`;
 
@@ -125,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.5-flash',
       contents: transcript,
       config: {
         systemInstruction: MASTER_PROMPT,

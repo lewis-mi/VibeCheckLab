@@ -47,10 +47,6 @@ const repairAndValidateAnalysis = (data: unknown): AnalysisResult => {
     ? result.dashboardMetrics.filter((m: any): m is DashboardMetric => m && typeof m.metric === 'string' && typeof m.keyFinding === 'string')
     : [];
 
-  result.deepDive = Array.isArray(result.deepDive)
-    ? result.deepDive.filter((d: any): d is DeepDiveConcept => d && typeof d.concept === 'string' && typeof d.analysis === 'string')
-    : [];
-
   result.keyMoment = result.keyMoment && typeof (result.keyMoment as KeyMoment).transcriptSnippet === 'string'
     ? result.keyMoment
     : { transcriptSnippet: 'N/A', analysis: 'Could not determine a key moment.' };

@@ -69,7 +69,6 @@ export interface AnalysisResult {
   keyFormulations: KeyFormulation[];
   dashboardMetrics: DashboardMetric[];
   keyMoment: KeyMoment;
-  deepDive: DeepDiveConcept[];
   annotatedTranscript: AnnotatedTurn[];
 }
 

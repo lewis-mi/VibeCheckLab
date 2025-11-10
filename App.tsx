@@ -106,6 +106,29 @@ const App: React.FC = () => {
   const handleAnalyze = (transcript: string) => {
     startAnalysis(transcript);
   };
+  
+  const handleInstantAnalysis = ({ analysis: precomputedAnalysis, transcript, id }: { analysis: AnalysisResult, transcript: string, id: string }) => {
+    setView('loading');
+    setError(null);
+    setCurrentTranscript(transcript);
+
+    // For demo purposes, show the loading animation for a short period
+    setTimeout(() => {
+      setAnalysis(precomputedAnalysis);
+      
+      const newRecentItem: RecentItem = {
+        id: `example-${id}-${new Date().toISOString()}`,
+        transcript,
+        analysis: precomputedAnalysis,
+        timestamp: new Date().toLocaleString(),
+      };
+      setRecentItems(prevItems => [newRecentItem, ...prevItems]);
+      setCurrentAnalysisId(newRecentItem.id);
+
+      setView('report');
+    }, 1500);
+  };
+
 
   const handleReset = () => {
     setView('input');
@@ -161,6 +184,7 @@ const App: React.FC = () => {
             {error && <ErrorDisplay message={error} onDismiss={handleDismissError} />}
             <TranscriptInput 
               onSubmit={handleAnalyze} 
+              onInstantAnalysis={handleInstantAnalysis}
               isLoading={false} 
               isMobile={isMobile}
             />

@@ -8,6 +8,7 @@ import Modal from './Modal';
 import MetricList from './MetricList';
 import CatalystMoment from './CatalystMoment';
 import ConversationFlowViz from './ConversationFlowViz';
+import { theoryExplanations } from '../data/theoryExplanations';
 
 interface AnalysisDisplayProps {
   analysis: AnalysisResult;
@@ -27,13 +28,18 @@ const sourceCitationMap: { [key: string]: string } = {
 };
 
 const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysis, onReset, transcript, isMobile, analysisId }) => {
-  const { vibeTitle, deepDive, annotatedTranscript, keyFormulations, dashboardMetrics } = analysis;
+  const { vibeTitle, annotatedTranscript, keyFormulations, dashboardMetrics } = analysis;
   const [activeDeepDive, setActiveDeepDive] = useState<DeepDiveConcept | null>(null);
 
   const handleOpenDeepDive = (metricName: string) => {
-    const concept = deepDive.find(d => d.concept === metricName);
-    if (concept) {
-      setActiveDeepDive(concept);
+    const theory = theoryExplanations.find(t => t.concept === metricName);
+    const metricData = dashboardMetrics.find(m => m.metric === metricName);
+
+    if (theory && metricData) {
+        setActiveDeepDive({
+            ...theory,
+            analysis: metricData.analysis, // Use the analysis from the dashboard metric
+        });
     }
   };
 
