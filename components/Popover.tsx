@@ -15,10 +15,6 @@ const Popover: React.FC<PopoverProps> = ({ content, children, highlightColor }) 
     borderRadius: '3px',
     cursor: 'pointer',
     position: 'relative',
-    textDecoration: 'underline',
-    textDecorationStyle: 'wavy',
-    textDecorationColor: `color-mix(in srgb, ${highlightColor || 'var(--primary-accent)'} 70%, transparent)`,
-    textUnderlineOffset: '3px',
   };
 
   return (

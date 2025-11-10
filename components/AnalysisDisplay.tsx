@@ -17,6 +17,15 @@ interface AnalysisDisplayProps {
   analysisId: string | null;
 }
 
+const sourceCitationMap: { [key: string]: string } = {
+    "Rapport": "Brown, P., & Levinson, S. C. (1987). Politeness: Some universals in language usage. Cambridge university press.",
+    "Purpose": "Austin, J. L. (1962). How to do things with words. Oxford university press.",
+    "Flow": "Sacks, H., Schegloff, E. A., & Jefferson, G. (1974). A simplest systematics for the organization of turn-taking for conversation. Language, 50(4), 696-735.",
+    "Implicature": "Grice, H. P. (1975). Logic and conversation. In Speech acts (pp. 41-58). Brill.",
+    "Cohesion": "Halliday, M. A. K., & Hasan, R. (1976). Cohesion in English. Longman.",
+    "Accommodation": "Giles, H., Taylor, D. M., & Bourhis, R. (1973). Towards a theory of interpersonal accommodation through language: Some Canadian data. Language in society, 2(2), 177-192."
+};
+
 const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysis, onReset, transcript, isMobile, analysisId }) => {
   const { vibeTitle, deepDive, annotatedTranscript, keyFormulations, dashboardMetrics } = analysis;
   const [activeDeepDive, setActiveDeepDive] = useState<DeepDiveConcept | null>(null);
@@ -51,6 +60,8 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysis, onReset, tr
       position: isMobile ? 'static' : 'sticky',
       width: isMobile ? '100%' : 'auto',
   };
+
+  const fullCitation = activeDeepDive ? sourceCitationMap[activeDeepDive.concept as keyof typeof sourceCitationMap] || activeDeepDive.source : '';
 
   return (
     <div style={styles.container}>
@@ -124,7 +135,7 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ analysis, onReset, tr
             <p>{activeDeepDive.analysis}</p>
             
             <div style={deepDiveStyles.sourceSection}>
-                <em>{activeDeepDive.source}</em>
+                <em>{fullCitation}</em>
             </div>
           </div>
         </Modal>

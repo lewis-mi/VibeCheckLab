@@ -4,6 +4,8 @@ import { ArrowRightIcon } from './icons';
 
 interface MetricCardProps extends DashboardMetric {
   onClick: () => void;
+  // FIX: Add optional balancePercent property to resolve destructuring error.
+  balancePercent?: number;
 }
 
 const FlowBalanceBar: React.FC<{ balancePercent: number }> = ({ balancePercent }) => (

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { RecentItem } from '../App';
 import { TrashIcon, XIcon } from './icons';
@@ -48,7 +49,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({ recentItems, isOpen, onSele
       {isOpen && <div style={styles.backdrop} onClick={onClose} />}
       <aside style={{ ...styles.panel, transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}>
         <div style={styles.header}>
-          <h3>history</h3>
+          <h3>History</h3>
           <div style={{display: 'flex', alignItems: 'center'}}>
             {recentItems.length > 0 && (
                 <button onClick={onClear} style={styles.iconButton} aria-label="Clear history">

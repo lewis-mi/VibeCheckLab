@@ -1,12 +1,12 @@
 import React from 'react';
 
 const words = [
-  { text: 'empathy', color: 'var(--header-logo-color)', delay: '0s', duration: '5s', left: '20%' },
-  { text: 'clarity', color: 'var(--human-color)', delay: '1s', duration: '6s', left: '80%' },
-  { text: 'flow', color: 'var(--ai-color)', delay: '2s', duration: '4s', left: '30%' },
-  { text: 'rapport', color: 'var(--rapport-color)', delay: '3s', duration: '5.5s', left: '70%' },
-  { text: 'vibe', color: 'var(--human-color)', delay: '4s', duration: '4.5s', left: '50%' },
-  { text: 'tone', color: 'var(--ai-color)', delay: '0.5s', duration: '6.5s', left: '40%' },
+  { text: 'empathy', color: 'var(--highlight-color-1)', delay: '0s', duration: '5s', left: '20%' },
+  { text: 'clarity', color: 'var(--highlight-color-2)', delay: '1s', duration: '6s', left: '80%' },
+  { text: 'flow', color: 'var(--highlight-color-3)', delay: '2s', duration: '4s', left: '30%' },
+  { text: 'rapport', color: 'var(--highlight-color-1)', delay: '3s', duration: '5.5s', left: '70%' },
+  { text: 'vibe', color: 'var(--highlight-color-2)', delay: '4s', duration: '4.5s', left: '50%' },
+  { text: 'tone', color: 'var(--highlight-color-3)', delay: '0.5s', duration: '6.5s', left: '40%' },
 ];
 
 const WordFlowAnimation: React.FC = () => {

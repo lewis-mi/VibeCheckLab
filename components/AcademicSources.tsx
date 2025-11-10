@@ -6,12 +6,12 @@ interface AcademicSourcesProps {
 }
 
 const sources = [
-    { title: "Politeness Theory", description: "How we manage social-face and rapport.", source: "Brown & Levinson (1987). 'Politeness: Some Universals in Language Usage.'" },
-    { title: "Speech Act Theory", description: "The actions we perform with words (e.g., promising, warning, apologizing).", source: "J. L. Austin (1962). 'How to Do Things with Words.'" },
-    { title: "Conversation Analysis", description: "The structure of conversation, like turn-taking and flow.", source: "Sacks, Schegloff, & Jefferson (1974). 'A simplest systematics for the organization of turn-taking for conversation.'" },
-    { title: "Conversational Implicature", description: "How meaning is conveyed beyond literal words through shared context.", source: "Paul Grice (1975). 'Logic and Conversation.'" },
-    { title: "Discourse Analysis", description: "How sentences are woven together to create a cohesive and coherent conversation.", source: "Halliday & Hasan (1976). 'Cohesion in English.'" },
-    { title: "Accommodation Theory", description: "How we adjust our communication style to signal social closeness or distance.", source: "Giles, H. (1973). 'Accent mobility: a model and some data.'" }
+    { title: "Politeness Theory", description: "How we manage social-face and rapport.", source: "Brown, P., & Levinson, S. C. (1987). Politeness: Some universals in language usage. Cambridge university press." },
+    { title: "Speech Act Theory", description: "The actions we perform with words (e.g., promising, warning, apologizing).", source: "Austin, J. L. (1962). How to do things with words. Oxford university press." },
+    { title: "Conversation Analysis", description: "The structure of conversation, like turn-taking and flow.", source: "Sacks, H., Schegloff, E. A., & Jefferson, G. (1974). A simplest systematics for the organization of turn-taking for conversation. Language, 50(4), 696-735." },
+    { title: "Conversational Implicature", description: "How meaning is conveyed beyond literal words through shared context.", source: "Grice, H. P. (1975). Logic and conversation. In Speech acts (pp. 41-58). Brill." },
+    { title: "Discourse Analysis", description: "How sentences are woven together to create a cohesive and coherent conversation.", source: "Halliday, M. A. K., & Hasan, R. (1976). Cohesion in English. Longman." },
+    { title: "Accommodation Theory", description: "How we adjust our communication style to signal social closeness or distance.", source: "Giles, H., Taylor, D. M., & Bourhis, R. (1973). Towards a theory of interpersonal accommodation through language: Some Canadian data. Language in society, 2(2), 177-192." }
 ];
 
 const AcademicSources: React.FC<AcademicSourcesProps> = ({ onBack }) => {

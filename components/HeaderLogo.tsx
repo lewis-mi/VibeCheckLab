@@ -96,7 +96,7 @@ const HeaderLogo: React.FC<HeaderLogoProps> = ({
           ref={pathRef}
           className="logo-underline-path"
           style={{
-            stroke: isFocused ? 'var(--text-color)' : 'var(--header-logo-color, #32CD32)',
+            stroke: isFocused ? 'var(--text-color)' : 'var(--header-logo-color, #C6F85C)',
             transition: 'stroke 0.2s ease-in-out',
           }}
           d="M0,10 C20,0 30,20 50,10 S80,0 100,10"

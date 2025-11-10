@@ -13,64 +13,72 @@
         /* --- Style Guide Variables --- */
         :root {
             --background: #FFFFFF;
-            --text-color: #1A1A1A;
-            --text-color-secondary: #777777;
-            --text-color-body: #444444;
-            --border-color: #E0E0E0;
+            --text-color: #000000;
+            --text-color-secondary: #555555;
+            --text-color-body: #000000;
+            --border-color: #000000;
             --border-color-light: #EAEAEA;
             --card-background: #FFFFFF;
-            --subtle-background: #F0F0F0;
+            --subtle-background: #F5F5F5;
             
-            --primary-accent: #C6F85C; /* New Lime */
-            --secondary-accent: #A5B4FC; /* Soft Blue-Purple */
+            --primary-accent: #C6F85C;
+            --secondary-accent: #000000;
 
             /* Mapped to new accents */
-            --human-color: var(--secondary-accent);
-            --ai-color: #A78BFA;
+            --human-color: #B4B8FF;
+            --ai-color: #B88AFF;
             --header-logo-color: var(--primary-accent);
+            --avatar-text-color: #FFFFFF;
 
-            /* Dynamic Highlight Colors */
-            --highlight-color-1: #C6F85C; /* Lime */
-            --highlight-color-2: #A5B4FC; /* Blue-Purple */
-            --highlight-color-3: #FBBF24; /* Amber */
+            /* Key Formulation & Highlight Colors */
+            --highlight-color-1: #FABD85; /* Soft Apricot */
+            --highlight-color-2: #AEC6CF; /* Pastel Blue */
+            --highlight-color-3: #FDFD96; /* Pastel Yellow */
             --default-construct-color: var(--text-color-secondary);
 
             /* Error Colors */
-            --error-background: #FFFBEB;
-            --error-text-color: #92400E;
-            --error-border-color: #FBBF24;
-            --error-icon-color: #D97706;
+            --error-background: #FFFFFF;
+            --error-text-color: #000000;
+            --error-border-color: #000000;
+            --error-icon-color: #000000;
             
-            --font-display: 'DM Sans', sans-serif;
+            --font-display: 'Inter', sans-serif;
             --font-body: 'Inter', sans-serif;
             --font-accent: 'Space Mono', monospace;
             
             --border-radius: 8px;
-            --border-radius-lg: 16px;
-            --shadow-subtle: 0 8px 24px rgba(0,0,0,0.06);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --border-radius-lg: 8px; /* Standardize border radius */
+            --shadow-subtle: none;
+            --shadow-md: none;
         }
 
         [data-theme="dark"] {
             --background: #121212;
-            --text-color: #FAFAFA;
-            --text-color-secondary: #A0A0A0;
-            --text-color-body: #CCCCCC;
-            --border-color: #333333;
-            --border-color-light: #444444;
+            --text-color: #FFFFFF;
+            --text-color-secondary: #AAAAAA;
+            --text-color-body: #FFFFFF;
+            --border-color: #FFFFFF;
+            --border-color-light: #333333;
             --card-background: #1E1E1E;
-            --subtle-background: #161616;
+            --subtle-background: #282828;
             
-            /* Dynamic Highlight Colors - Dark Theme */
-            --highlight-color-1: #C6F85C;
-            --highlight-color-2: #A5B4FC;
-            --highlight-color-3: #FBBF24;
+            --primary-accent: #C6F85C;
+            --secondary-accent: #FFFFFF;
+            
+            --human-color: #B4B8FF;
+            --ai-color: #B88AFF;
+            --avatar-text-color: #000000;
+
+            /* Key Formulation & Highlight Colors */
+            --highlight-color-1: #FABD85; /* Soft Apricot */
+            --highlight-color-2: #AEC6CF; /* Pastel Blue */
+            --highlight-color-3: #FDFD96; /* Pastel Yellow */
 
             /* Error Colors - Dark Theme */
-            --error-background: #2E1902;
-            --error-text-color: #FCD34D;
-            --error-border-color: #B45309;
-            --error-icon-color: #FCD34D;
+            --error-background: #1D1D1D;
+            --error-text-color: #FFFFFF;
+            --error-border-color: #333333;
+            --error-icon-color: #FFFFFF;
         }
 
         /* --- General Setup --- */
@@ -99,7 +107,6 @@
         }
 
         h1, h2 {
-            text-transform: lowercase;
             letter-spacing: -0.01em;
         }
 
@@ -134,11 +141,6 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        @keyframes glow {
-            0% { box-shadow: 0 0 4px rgba(198,248,92,0.4); }
-            50% { box-shadow: 0 0 16px rgba(198,248,92,0.8); }
-            100% { box-shadow: 0 0 4px rgba(198,248,92,0.4); }
-        }
         
         /* --- Animation Utility Classes --- */
         .anim-slide-up-fade, .anim-pop-in {
@@ -160,79 +162,50 @@
         }
 
         /* --- Global Component Styles --- */
-        .primary-button {
+        .primary-button, .secondary-button, .ghost-button {
             display: inline-block;
             font-family: 'Inter', sans-serif;
             font-weight: 700;
             font-size: 1em;
-            color: #1A1A1A;
-            background: var(--primary-accent);
-            border: none;
-            border-radius: var(--border-radius);
-            padding: 13px 21px;
-            cursor: pointer;
-            text-decoration: none;
-            text-align: center;
-            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .primary-button:hover:not(:disabled), .primary-button:focus:not(:disabled) {
-            transform: translateY(-2px);
-            animation: glow 1.5s infinite ease-in-out;
-            outline: none;
-        }
-        .primary-button:disabled {
-            background-color: var(--subtle-background);
-            color: var(--text-color-secondary);
-            cursor: not-allowed;
-            opacity: 0.8;
-        }
-        
-        .secondary-button {
-            display: inline-block;
-            font-family: 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 1em;
-            color: var(--background);
-            background-color: var(--text-color);
-            border: 1px solid var(--text-color);
             border-radius: var(--border-radius);
             padding: 12px 20px;
             cursor: pointer;
             text-decoration: none;
             text-align: center;
-            transition: opacity 0.25s ease;
-        }
-        .secondary-button:hover, .secondary-button:focus {
-            opacity: 0.8;
-            outline: none;
+            transition: all 0.2s ease;
         }
 
-        .ghost-button {
-            display: inline-block;
-            font-family: 'Inter', sans-serif;
-            font-weight: 700;
-            font-size: 1em;
+        .primary-button {
+            background-color: var(--primary-accent);
+            color: #000;
+            border: 1px solid var(--primary-accent);
+        }
+
+        .primary-button:hover:not(:disabled) {
+            background-color: color-mix(in srgb, var(--primary-accent) 90%, white);
+            border-color: color-mix(in srgb, var(--primary-accent) 90%, white);
+        }
+
+        .secondary-button, .ghost-button {
             color: var(--text-color);
             background-color: transparent;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            padding: 12px 20px;
-            cursor: pointer;
-            text-decoration: none;
-            text-align: center;
-            transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+            border: 1px solid var(--text-color);
         }
-        .ghost-button:hover, .ghost-button:focus {
-            background-color: var(--secondary-accent);
-            color: #fff;
-            border-color: var(--secondary-accent);
-            outline: none;
+        .secondary-button:hover:not(:disabled), 
+        .ghost-button:hover:not(:disabled) {
+            background-color: var(--primary-accent);
+            color: #000000;
+            border-color: var(--primary-accent);
         }
+
+        .primary-button:disabled,
+        .secondary-button:disabled,
         .ghost-button:disabled {
-            opacity: 0.5;
+            background-color: var(--subtle-background) !important;
+            color: var(--text-color-secondary) !important;
+            border-color: var(--border-color-light) !important;
             cursor: not-allowed;
-            background-color: transparent;
-            color: var(--text-color);
+            opacity: 0.6;
         }
         
         .text-button {
@@ -248,17 +221,16 @@
             transition: background-color 0.2s ease, color 0.2s ease;
         }
         .text-button:hover, .text-button:focus {
-            background-color: var(--subtle-background);
-            color: var(--secondary-accent);
+            background-color: transparent;
+            color: var(--primary-accent);
             outline: none;
         }
 
         .insight-card {
             background-color: var(--card-background);
-            border-radius: var(--border-radius-lg);
+            border-radius: var(--border-radius);
             box-shadow: var(--shadow-subtle);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            border: none;
+            border: 1px solid var(--border-color-light);
         }
 
         /* --- Custom Select Component --- */
@@ -270,7 +242,7 @@
         .custom-select-trigger {
             width: 100%;
             padding: 12px;
-            border: 1px solid var(--border-color-light);
+            border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
             background-color: var(--card-background);
             color: var(--text-color);
@@ -293,7 +265,7 @@
             left: 0;
             right: 0;
             background-color: var(--card-background);
-            border: 1px solid var(--border-color-light);
+            border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-md);
             margin-top: 4px;
@@ -308,12 +280,12 @@
             padding: 10px 12px;
             cursor: pointer;
             border-radius: 4px;
-            transition: background-color 0.2s ease;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
 
         .custom-select-option:hover, .custom-select-option:focus {
             background-color: var(--primary-accent);
-            color: #1A1A1A;
+            color: #000000;
             outline: none;
         }
 
@@ -332,14 +304,15 @@
     "jspdf": "https://aistudiocdn.com/jspdf@^2.5.1",
     "vite": "https://aistudiocdn.com/vite@^7.2.2",
     "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
-    "path": "https://aistudiocdn.com/path@^0.12.7"
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0"
   }
 }
 </script>
 <script>
     (function() {
       // Prevents FOUC (Flash of Unstyled Content) for theme
-      const theme = localStorage.getItem('vibe-check-theme') || 'dark';
+      const theme = localStorage.getItem('vibe-check-theme') || 'light';
       document.documentElement.setAttribute('data-theme', theme);
     })();
 </script>
