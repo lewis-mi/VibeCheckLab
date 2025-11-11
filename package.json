@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start": "node dist/api/analyze.js",
-    "start:api": "npm run build:api && node dist/api/analyze.js",
-    "build:api": "tsc api/analyze.ts --outDir dist --esModuleInterop --resolveJsonModule",
+    "start": "node dist/api/server.js",
+    "start:api": "npm run build:api && node dist/api/server.js",
+    "build:api": "tsc --project tsconfig.api.json",
     "build": "vite build && npm run build:api",
     "preview": "vite preview"
   },
