@@ -196,11 +196,10 @@ export default defineConfig(({ mode }) => {
       {
         name: 'vibe-check-api-middleware',
         configureServer(server) {
-          server.middlewares.use('/api/analyze', (req, res, next) => {
-            if (req.method === 'POST') {
+          server.middlewares.use((req, res, next) => {
+            if (req.url === '/api/analyze' && req.method === 'POST') {
               handleApiRequest(req, res);
             } else {
-              // Let other requests fall through to Vite or other middlewares
               next();
             }
           });
