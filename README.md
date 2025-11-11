@@ -52,25 +52,21 @@ This project uses Vite for its development server and a standalone Node.js serve
 
 2.  **Set up Environment Variables:**
     Your `API_KEY` for the Gemini API must be available as an environment variable. Create a `.env` file in the project root:
-    ```
+    ```bash
     API_KEY=your_gemini_api_key_here
     ```
 
-3.  **Run the Development Environment:**
-    You will need to run the API server and the frontend server in two separate terminals.
-    
-    *Terminal 1: Start the API Server*
-    ```bash
-    npm run start:api
-    ```
+    **Get your API key from:** https://aistudio.google.com/app/apikey
 
-    *Terminal 2: Start the Vite Frontend Server*
+3.  **Run the Development Server:**
     ```bash
     npm run dev
     ```
 
+    The Vite development server includes embedded API logic, so you only need to run one command for both frontend and backend during development.
+
 4.  **Open the App:**
-    The application will be available at `http://localhost:3000`. The Vite server will automatically proxy API requests to your Node.js server.
+    The application will be available at `http://localhost:3000`.
 
 ### ☁️ How to Deploy to Google Cloud Run
 
