@@ -2,6 +2,10 @@
 
 This guide shows you how to deploy Vibe Check Lab to Google Cloud Run with secure API key management.
 
+**🌐 Live Production Deployment:** https://vibe-check-lab-142444819227.us-west1.run.app/
+
+This instance is deployed in the `us-west1` region using Google Secret Manager for secure API key storage.
+
 ## Prerequisites
 
 1. **Google Cloud Account** - Sign up at https://cloud.google.com/

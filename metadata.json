@@ -1,5 +1,6 @@
 {
   "name": "Vibe Check Lab Analyst",
   "description": "An AI-powered conversation analysis tool for students of human-computer interaction. Paste a transcript to receive an in-depth analysis grounded in academic linguistic theories.",
+  "url": "https://vibe-check-lab-142444819227.us-west1.run.app/",
   "requestFramePermissions": []
 }

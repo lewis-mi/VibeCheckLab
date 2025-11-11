@@ -2,6 +2,8 @@
 
 > "Overthink a conversation. But with science."
 
+**🌐 [Try it live!](https://vibe-check-lab-142444819227.us-west1.run.app/)**
+
 Vibe Check Lab is a web-based analysis tool that uses the Gemini API to analyze chatbot transcripts. It reveals the "vibe" of an interaction by evaluating intangible feelings of rapport, purpose, and flow that go beyond just what was said.
 
 This tool is designed for students, researchers, and designers of human-computer interaction to get instant, data-driven insights into why a conversation *feels* the way it does, with analysis grounded in academic linguistic theories.
@@ -67,6 +69,12 @@ This project uses Vite for its development server and a standalone Node.js serve
 
 4.  **Open the App:**
     The application will be available at `http://localhost:3000`.
+
+## 🌐 Production Deployment
+
+**Live Demo:** https://vibe-check-lab-142444819227.us-west1.run.app/
+
+This application is deployed on Google Cloud Run in the `us-west1` region with secure API key management via Google Secret Manager.
 
 ### ☁️ How to Deploy to Google Cloud Run
 
