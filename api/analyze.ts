@@ -5,12 +5,23 @@ import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import { fileURLToPath } from 'url';
+import { RateLimiter } from './rateLimiter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const MAX_TRANSCRIPT_LENGTH = 10000;
 const PORT = process.env.PORT || 3001;
+
+// Rate limiter: 10 requests per minute per IP
+const rateLimiter = new RateLimiter(10, 60000);
+
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || [
+  'https://vibe-check-lab-142444819227.us-west1.run.app',
+  'http://localhost:3000',
+  'http://localhost:3001'
+];
 
 const piiPatterns = [
   { name: 'email address', pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi },
@@ -119,6 +130,19 @@ const mimeTypes: { [key: string]: string } = {
   '.svg': 'image/svg+xml',
 };
 
+/**
+ * Extract client IP address from request
+ * Checks X-Forwarded-For header for proxy scenarios (Cloud Run, etc.)
+ */
+function getClientIp(req: IncomingMessage): string {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+        const ips = typeof forwarded === 'string' ? forwarded.split(',') : forwarded;
+        return ips[0].trim();
+    }
+    return req.socket.remoteAddress || 'unknown';
+}
+
 async function readRequestBody(req: IncomingMessage): Promise<string> {
     return await new Promise((resolve, reject) => {
         let body = '';
@@ -181,6 +205,31 @@ async function performAnalysis(transcript: string) {
 
 async function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
     try {
+        // Rate limiting check
+        const clientIp = getClientIp(req);
+        const rateLimitResult = rateLimiter.checkLimit(clientIp);
+
+        if (!rateLimitResult.allowed) {
+            const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+            res.writeHead(429, {
+                'Content-Type': 'application/json',
+                'Retry-After': retryAfter.toString(),
+                'X-RateLimit-Limit': '10',
+                'X-RateLimit-Remaining': '0',
+                'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
+            });
+            res.end(JSON.stringify({
+                error: 'Too many requests. Please try again later.',
+                retryAfter
+            }));
+            return;
+        }
+
+        // Add rate limit headers to successful requests
+        res.setHeader('X-RateLimit-Limit', '10');
+        res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+        res.setHeader('X-RateLimit-Reset', rateLimitResult.resetTime.toString());
+
         const body = await readRequestBody(req);
         const { transcript } = JSON.parse(body ?? '{}');
 
@@ -211,10 +260,20 @@ function serveStaticFile(req: IncomingMessage, res: ServerResponse) {
 
     // The root of our static files is one level up from the `api` directory inside `dist`.
     const staticFileRoot = path.resolve(__dirname, '..');
-    
-    // Prevent path traversal attacks
+
+    // Prevent path traversal attacks - hardened version
     const safePathSuffix = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
     let staticFilePath = path.join(staticFileRoot, safePathSuffix);
+
+    // Additional security: Verify the resolved path is within the allowed directory
+    const resolvedPath = path.resolve(staticFilePath);
+    const resolvedRoot = path.resolve(staticFileRoot);
+
+    if (!resolvedPath.startsWith(resolvedRoot)) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('Forbidden: Path traversal attempt detected.');
+        return;
+    }
 
     fs.stat(staticFilePath, (err, stats) => {
         // Fallback to serving index.html for SPA routing
@@ -257,10 +316,56 @@ function serveStaticFile(req: IncomingMessage, res: ServerResponse) {
     });
 }
 
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+/**
+ * Set security headers on all responses
+ */
+function setSecurityHeaders(res: ServerResponse): void {
+    // Prevent MIME type sniffing
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    // Prevent clickjacking
+    res.setHeader('X-Frame-Options', 'DENY');
+
+    // Enable XSS protection
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+
+    // Content Security Policy
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;"
+    );
+
+    // HSTS (only in production with HTTPS)
+    if (process.env.NODE_ENV === 'production') {
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
+}
+
+/**
+ * Set CORS headers based on allowed origins
+ */
+function setCorsHeaders(req: IncomingMessage, res: ServerResponse): void {
+    const origin = req.headers.origin;
+
+    // Check if origin is allowed
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else if (!origin && process.env.NODE_ENV !== 'production') {
+        // Allow requests without origin header in development (e.g., curl, Postman)
+        res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+    }
+
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
+    // Set security headers on all responses
+    setSecurityHeaders(res);
+
+    // Set CORS headers
+    setCorsHeaders(req, res);
 
     if (req.method === 'OPTIONS') {
         res.writeHead(204);

@@ -8,6 +8,46 @@ import type { IncomingMessage, ServerResponse } from 'http';
 
 const MAX_TRANSCRIPT_LENGTH = 10000;
 
+// Allowed origins for CORS (development mode)
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001'
+];
+
+// Simple rate limiter for development
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetTime: number } {
+  const now = Date.now();
+  const entry = rateLimitStore.get(ip);
+
+  if (!entry || now > entry.resetTime) {
+    const resetTime = now + RATE_LIMIT_WINDOW;
+    rateLimitStore.set(ip, { count: 1, resetTime });
+    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetTime };
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return { allowed: false, remaining: 0, resetTime: entry.resetTime };
+  }
+
+  entry.count++;
+  return { allowed: true, remaining: RATE_LIMIT_MAX - entry.count, resetTime: entry.resetTime };
+}
+
+function getClientIp(req: IncomingMessage): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const ips = typeof forwarded === 'string' ? forwarded.split(',') : forwarded;
+    return ips[0].trim();
+  }
+  return req.socket.remoteAddress || 'unknown';
+}
+
 const piiPatterns = [
   { name: 'email address', pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi },
   { name: 'phone number', pattern: /\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/gi },
@@ -106,7 +146,60 @@ Your analysis process is as follows:
 The user will provide the transcript. Your entire output MUST be the JSON analysis.`;
 
 
+function setSecurityHeaders(res: ServerResponse): void {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;"
+  );
+}
+
+function setCorsHeaders(req: IncomingMessage, res: ServerResponse): void {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else if (!origin) {
+    res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
 async function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
+    // Set security headers
+    setSecurityHeaders(res);
+
+    // Set CORS headers
+    setCorsHeaders(req, res);
+
+    // Rate limiting check
+    const clientIp = getClientIp(req);
+    const rateLimitResult = checkRateLimit(clientIp);
+
+    if (!rateLimitResult.allowed) {
+      const retryAfter = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+      res.writeHead(429, {
+        'Content-Type': 'application/json',
+        'Retry-After': retryAfter.toString(),
+        'X-RateLimit-Limit': RATE_LIMIT_MAX.toString(),
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
+      });
+      res.end(JSON.stringify({
+        error: 'Too many requests. Please try again later.',
+        retryAfter
+      }));
+      return;
+    }
+
+    // Add rate limit headers
+    res.setHeader('X-RateLimit-Limit', RATE_LIMIT_MAX.toString());
+    res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    res.setHeader('X-RateLimit-Reset', rateLimitResult.resetTime.toString());
+
     let body = '';
     req.on('data', chunk => {
         body += chunk.toString();
@@ -156,7 +249,7 @@ async function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
             if (!responseText) {
                 throw new Error('Received an empty response from the analysis service.');
             }
-            
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(responseText);
 
