@@ -12,16 +12,33 @@ interface TranscriptInputProps {
   isMobile: boolean;
 }
 
-const EmptyStateOnboarding: React.FC = () => (
-  <div style={styles.emptyStateContainer}>
-    <h3 style={styles.emptyStateTitle}>Welcome to the vibe check lab!</h3>
-    <p style={styles.emptyStateText}>Start your first analysis in two simple steps:</p>
-    <ol style={styles.emptyStateList}>
-      <li style={styles.emptyStateListItem}>Select one of our curated examples from the dropdown menu above.</li>
-      <li style={styles.emptyStateListItem}>Click "Check the vibe" to see the report.</li>
-    </ol>
-  </div>
-);
+const EmptyStateOnboarding: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
+  const titleStyles = {
+    ...styles.emptyStateTitle,
+    fontSize: isMobile ? '1.1em' : '1.2em',
+  };
+
+  const containerStyles = {
+    ...styles.emptyStateContainer,
+    padding: isMobile ? '16px' : '20px',
+  };
+
+  const listStyles = {
+    ...styles.emptyStateList,
+    paddingLeft: isMobile ? '16px' : '20px',
+  };
+
+  return (
+    <div style={containerStyles}>
+      <h3 style={titleStyles}>Welcome to the vibe check lab!</h3>
+      <p style={styles.emptyStateText}>Start your first analysis in two simple steps:</p>
+      <ol style={listStyles}>
+        <li style={styles.emptyStateListItem}>Select one of our curated examples from the dropdown menu above.</li>
+        <li style={styles.emptyStateListItem}>Click "Check the vibe" to see the report.</li>
+      </ol>
+    </div>
+  );
+};
 
 const TranscriptInput: React.FC<TranscriptInputProps> = ({ onSubmit, onInstantAnalysis, isLoading, isMobile }) => {
   const [activeTab, setActiveTab] = useState<'examples' | 'custom'>('examples');
@@ -203,7 +220,7 @@ const TranscriptInput: React.FC<TranscriptInputProps> = ({ onSubmit, onInstantAn
                 />
               ) : (
                 <div style={styles.examplePreview}>
-                    <EmptyStateOnboarding />
+                    <EmptyStateOnboarding isMobile={isMobile} />
                 </div>
               )}
             </div>
